@@ -7,7 +7,7 @@
   "description": "Cybersecurity feed: exploited CVEs with PoC, ransomware and security news",
   "kinds": ["bar-widget"],
   "entryPoints": {
-    "barWidget": "omarchy/BarWidget.qml"
+    "barWidget": "omarchy/Missing.qml"
   },
   "barWidget": {
     "displayName": "TheDailyBugle",
