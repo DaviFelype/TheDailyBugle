@@ -174,16 +174,17 @@ casos de segurança, dados de teste/fixtures, critério de pronto e riscos.
 `chore: initial project scaffold` passando nos hooks.
 
 ### Fase 1 — Pipeline CI/CD (antes de qualquer funcionalidade)
-- [ ] `ci.yml`: fmt → clippy → testes + cobertura → `qmllint` + testes `Model.js`
+- [x] `ci.yml`: fmt → clippy → testes + cobertura → `qmllint` + testes `Model.js`
   → `omarchy plugin validate` (equivalente em CI) → checagem de commits.
-- [ ] `security.yml`: Semgrep, CodeQL, cargo-audit/deny, OSV-Scanner, gitleaks,
+- [x] `security.yml`: Semgrep, CodeQL, cargo-audit/deny, OSV-Scanner, gitleaks,
   zizmor, actionlint, Scorecard.
-- [ ] `dast.yml`: fuzzing curto em PR, longo agendado; testes de feed hostil.
-- [ ] `release.yml`: tag → build x86_64/aarch64 → SBOM → attestation → GitHub Release.
-- [ ] Projeto "hello world" mínimo só para o pipeline ter o que verificar.
+- [x] `dast.yml`: fuzzing curto em PR, longo agendado; testes de feed hostil.
+- [x] `release.yml`: tag → build x86_64/aarch64 → SBOM → attestation → GitHub Release.
+- [x] Projeto "hello world" mínimo só para o pipeline ter o que verificar.
 
 **Pronto quando:** PR de teste com uma vulnerabilidade proposital é bloqueado pelo CI
 (provando que os gates funcionam), e documentado em `docs/problems/` se algo falhar.
+Resultado dos casos S01–S12 em `docs/test-strategy/000-pipeline-ci.md` (PRs #2–#12).
 
 ### Fase 2 — Walking skeleton (ponta a ponta com dados falsos)
 - [ ] Estratégia de teste 001.
