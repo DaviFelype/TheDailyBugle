@@ -1,0 +1,65 @@
+name: dast
+
+# Fuzzing: short on every PR, long every night. Hostile-feed tests against
+# the real binary join this workflow in phase 3, when there is a feed.
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in sync with FUZZ_NIGHTLY in scripts/bootstrap.sh.
+  FUZZ_NIGHTLY: nightly-2026-10-15
+  # cargo-fuzz defaults to the target it was built for (musl when installed
+  # by cargo-binstall); the sanitizers need the gnu target.
+  FUZZ_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+
+jobs:
+  fuzz:
+    name: fuzz
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the fuzzing nightly
+        run: rustup toolchain install "$FUZZ_NIGHTLY" --profile minimal
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: cargo:cargo-fuzz
+      - name: Run every fuzz target
+        env:
+          SECONDS_PER_TARGET: ${{ github.event_name == 'pull_request' && '60' || '1800' }}
+        run: |
+          for target in $(cargo "+$FUZZ_NIGHTLY" fuzz list); do
+            echo "::group::$target (${SECONDS_PER_TARGET}s)"
+            cargo "+$FUZZ_NIGHTLY" fuzz run --target "$FUZZ_TARGET_TRIPLE" "$target" -- \
+              -max_total_time="$SECONDS_PER_TARGET"
+            echo "::endgroup::"
+          done
+      - name: Keep crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts/
+          retention-days: 30
+      - name: Keep the grown corpus
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-corpus
+          path: fuzz/corpus/
+          retention-days: 14
