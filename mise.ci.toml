@@ -1,0 +1,9 @@
+# CI-only tools, loaded on top of mise.toml when MISE_ENV=ci.
+# They stay off developer machines on purpose: fewer third-party binaries on
+# the host (see docs/test-strategy/000-pipeline-ci.md, "Isolamento local").
+# Supply-chain rule: only pin releases published at least 7 days ago.
+
+[tools]
+semgrep = "1.182.0"
+osv-scanner = "2.7.0"
+"cargo:cargo-cyclonedx" = "0.5.9"

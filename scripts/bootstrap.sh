@@ -15,7 +15,7 @@ cd "$root"
 info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
-for cmd in mise git cc; do
+for cmd in mise git cc bwrap; do
   command -v "$cmd" >/dev/null || fail "'$cmd' not found; install it first"
 done
 
@@ -55,7 +55,7 @@ mise exec -- bash -c '
   cog --version
   lefthook version
   gitleaks version
-  semgrep --version
+  node --version
   actionlint -version | head -n1
   zizmor --version
 '
