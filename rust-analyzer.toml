@@ -1,0 +1,4 @@
+# Keep the editor from running third-party build scripts and proc macros on
+# the host. Builds that need them go through scripts/sandbox.sh.
+cargo.buildScripts.enable = false
+procMacro.enable = false
