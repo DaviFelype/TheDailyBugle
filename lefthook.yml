@@ -9,9 +9,10 @@ pre-commit:
       glob: "*.rs"
       run: cargo fmt --all -- --check
 
+    # Clippy compiles build scripts and proc macros, so it runs sandboxed.
     - name: clippy
       glob: "*.rs"
-      run: cargo clippy --all-targets --all-features -- -D warnings
+      run: scripts/sandbox.sh cargo clippy --all-targets --all-features -- -D warnings
 
     - name: actionlint
       glob: ".github/workflows/*.{yml,yaml}"
