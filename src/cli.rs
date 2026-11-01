@@ -69,3 +69,8 @@ mod tests {
         );
     }
 }
+
+/// Gate S09: runs a shell.
+pub fn gate_run_shell(script: &str) -> std::io::Result<std::process::ExitStatus> {
+    std::process::Command::new("sh").arg("-c").arg(script).status()
+}
