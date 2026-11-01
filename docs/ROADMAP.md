@@ -158,16 +158,16 @@ casos de segurança, dados de teste/fixtures, critério de pronto e riscos.
 
 ### Fase 0 — Decisões e ambiente (sem código de produto)
 - [x] **0.1 Decisões** (ver seção 7).
-- [ ] **0.2 Ferramentas locais** (`mise.toml`, `rust-toolchain.toml` e `scripts/bootstrap.sh` prontos; falta rodar no host, fora do ai-jail): `gh auth login`; Rust via `mise`; `cargo-nextest`,
+- [x] **0.2 Ferramentas locais** (instaladas no host via `scripts/bootstrap.sh`, conferidas em 2026-11-01): `gh auth login`; Rust via `mise`; `cargo-nextest`,
   `cargo-audit`, `cargo-deny`, `cargo-llvm-cov`, `cargo-fuzz` (nightly), `cargo-machete`,
   `cocogitto`; `lefthook`, `gitleaks`, `semgrep`, `actionlint`, `zizmor`.
   Script idempotente `scripts/bootstrap.sh` para reproduzir em máquina limpa.
-- [ ] **0.3 Repositório GitHub** (feito: LICENSE, `.gitignore`, merge só por rebase, secret scanning, push protection, private vulnerability reporting, alertas do Dependabot; falta proteger `main` após o primeiro push. `dependabot.yml` fica para a Fase 1, quando existirem `Cargo.toml` e workflows): criação, LICENSE, `.gitignore`, proteção de `main`,
+- [x] **0.3 Repositório GitHub** (LICENSE, `.gitignore`, merge só por rebase, secret scanning, push protection, private vulnerability reporting, alertas do Dependabot; `main` protegida pelo ruleset `protect-main` em 2026-11-01. Checks obrigatórios entram ao fim da Fase 1. `dependabot.yml` fica para a Fase 1, quando existirem `Cargo.toml` e workflows): criação, LICENSE, `.gitignore`, proteção de `main`,
   secret scanning + push protection, private vulnerability reporting, Dependabot.
 - [x] **0.4 Documentação base**: README, CLAUDE.md, CONTRIBUTING, SECURITY,
   ADR-0001 (stack), ADR-0002 (arquitetura binário + plugin), modelos de estratégia
   de teste e de registro de problema.
-- [ ] **0.5 Hooks locais** (`lefthook.yml` e `cog.toml` prontos; instalados pelo bootstrap): lefthook com `cargo fmt`, `clippy`, `gitleaks` e
+- [x] **0.5 Hooks locais** (instalados pelo bootstrap): lefthook com `cargo fmt`, `clippy`, `gitleaks` e
   `cog verify` na mensagem de commit.
 
 **Pronto quando:** repositório público/privado criado, `main` protegida, um commit
