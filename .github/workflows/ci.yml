@@ -85,7 +85,7 @@ jobs:
       contents: read
     # Arch, like Omarchy: Ubuntu's qmllint (Qt 6.4) is far behind the host's.
     container:
-      image: archlinux:base@ARCH_IMAGE_DIGEST
+      image: archlinux:base@sha256:52dfbd5afb23a220d5ee92dafcb4c788d96c026ed04179890c23adef4c897fa0
     env:
       # Packages come from a dated Arch Linux Archive snapshot, so the job is
       # reproducible and follows the 7-day rule.

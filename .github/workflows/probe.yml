@@ -1,17 +1,32 @@
-# Temporary: finds the archlinux:base digest for ci.yml. Dropped before merge.
+# Temporary: debugs the cargo tool installs. Dropped before merge.
 # Logs are unreadable from ai-jail, so results go out as annotations.
 name: probe
 on:
   pull_request:
 permissions: {}
 jobs:
-  digest:
+  cargo-tools:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions: {}
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - name: archlinux dated base tags
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the Rust toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          version: 2026.10.19
+          install_args: cargo-binstall uv
+          cache: false
+      - name: Install a cargo tool, report the output
         run: |
-          curl -fsS --max-time 30 \
-            'https://hub.docker.com/v2/repositories/library/archlinux/tags?name=base-2026&page_size=10&ordering=last_updated' \
-            | jq -r '.results[] | "::notice title=\(.name)::\(.digest) \(.last_updated)"'
+          set +e
+          MISE_VERBOSE=1 mise install cargo:cargo-nextest >log.txt 2>&1
+          status=$?
+          echo "::notice title=exit::${status}"
+          tail -c 6000 log.txt | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}' | sed 's/^/::error title=tail::/'
+          echo
+          echo "::notice title=which::$(command -v cargo cargo-binstall | tr '\n' ' ')"
