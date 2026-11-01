@@ -49,3 +49,5 @@ Please report vulnerabilities privately. See [SECURITY.md](SECURITY.md).
 ## License
 
 [MIT](LICENSE)
+
+<!-- gate S04 -->
