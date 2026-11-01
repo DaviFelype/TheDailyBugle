@@ -42,11 +42,53 @@ Tipos: `feat`, `fix`, `test`, `refactor`, `docs`, `ci`, `chore`, `build`, `perf`
 
 | Hook | Verificações |
 |---|---|
-| `pre-commit` | `gitleaks`, `cargo fmt --check`, `cargo clippy -D warnings`, `actionlint` e `zizmor` nos workflows |
+| `pre-commit` | `gitleaks`, `cargo fmt --check`, `cargo clippy -D warnings` (dentro do sandbox), `actionlint` e `zizmor` nos workflows |
 | `commit-msg` | `cog verify` |
 
 Não use `--no-verify`. Se um hook falhar sem motivo claro, registre em
 `docs/problems/`.
+
+## Isolamento da máquina
+
+Código de terceiros roda sem ninguém ver em todo build: `build.rs` e macros das
+crates, alvos de fuzzing. Por isso:
+
+- **Comandos que compilam ou executam código de crates passam pelo sandbox**
+  (bubblewrap: sem rede, `HOME` vazio, projeto só leitura exceto `target/` e as
+  pastas de saída do fuzz):
+
+  ```sh
+  scripts/sandbox.sh cargo nextest run
+  scripts/sandbox.sh cargo clippy --all-targets -- -D warnings
+  ```
+
+  `cargo fmt` não executa código de crates e pode rodar direto. Dentro do ai-jail o
+  sandbox não aninha; o script avisa e roda direto, e o isolamento fica com o jail.
+- **Editor**: o `rust-analyzer.toml` desliga `build.rs` e macros procedurais. Se o
+  seu editor ignorar o arquivo, configure `rust-analyzer.cargo.buildScripts.enable`
+  e `rust-analyzer.procMacro.enable` como `false`.
+- **Ferramentas só do CI** (`semgrep`, `osv-scanner`, `cargo-cyclonedx`) ficam em
+  `mise.ci.toml` e não são instaladas pelo bootstrap.
+
+## Testes
+
+```sh
+scripts/sandbox.sh cargo nextest run            # Rust
+scripts/sandbox.sh cargo llvm-cov nextest       # Rust com cobertura (mínimo 90%)
+node --test tests/js/                           # Model.js
+tests/plugin/validate-manifest.sh               # manifesto do plugin
+tests/plugin/qmllint.sh                         # QML contra os tipos do Omarchy
+tests/sandbox/run.sh                            # o próprio sandbox
+```
+
+Fuzzing (o `--target` é obrigatório; ver `docs/problems/2026-11-01-cargo-fuzz-musl-target.md`):
+
+```sh
+scripts/sandbox.sh cargo +nightly-2026-10-15 fuzz run --target x86_64-unknown-linux-gnu parse_command -- -max_total_time=60
+```
+
+Dentro do ai-jail, acrescente `ASAN_OPTIONS=detect_leaks=0` (ver
+`docs/problems/2026-11-01-lsan-under-ai-jail.md`).
 
 ## Dependências
 
