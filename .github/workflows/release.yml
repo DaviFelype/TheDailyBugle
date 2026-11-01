@@ -1,0 +1,115 @@
+name: release
+
+# A v* tag builds, attests and publishes. A PR that touches the release
+# inputs, or a manual run, is a dry run: build and SBOM only.
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - .github/actions/**
+      - Cargo.toml
+      - Cargo.lock
+      - mise.toml
+      - mise.ci.toml
+      - rust-toolchain.toml
+  workflow_dispatch:
+
+permissions: {}
+
+# Never cancel a release half-way.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      MISE_ENV: ci
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the Rust toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      # No cache anywhere in this workflow: a poisoned cache would end up in
+      # the published binary.
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: cargo:cargo-cyclonedx
+          cache: "false"
+      - name: Check that the tag matches Cargo.toml
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          [[ "v$version" == "$TAG" ]] || { echo "::error::tag $TAG does not match Cargo.toml $version"; exit 1; }
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+        run: cargo build --release --locked --target "$TARGET"
+      - name: Package
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          name="thedailybugle-${version}-${TARGET}"
+          mkdir -p "dist/$name"
+          cp "target/$TARGET/release/thedailybugle" LICENSE README.md "dist/$name/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+          rm -rf "dist/${name:?}"
+          cargo cyclonedx --format json --target "$TARGET"
+          mv thedailybugle.cdx.json "dist/$name.cdx.json"
+          (cd dist && sha256sum -- * >"$name.sha256")
+          ls -l dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.tar.gz
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: gh release create "$TAG" dist/* --repo "$REPOSITORY" --verify-tag --title "$TAG" --generate-notes
