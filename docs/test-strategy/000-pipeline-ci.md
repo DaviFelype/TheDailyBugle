@@ -2,7 +2,7 @@
 
 - **Status:** aprovada em 2026-11-01
 - **Fase do roadmap:** 1
-- **PR:** —
+- **PR:** #1
 
 ## Objetivo
 
@@ -204,12 +204,12 @@ com cabeçalho de origem e licença. É um pouco mais novo que o instalado no ho
 
 ## Critério de pronto
 
-- [ ] T01–T16 e S13–S19 automatizados e passando.
-- [ ] Cobertura de linhas ≥ 90%.
-- [ ] Todos os workflows verdes no PR desta leva; `release.yml` verde em ensaio.
-- [ ] S01–S12 vermelhos no job esperado, com links registrados aqui.
+- [x] T01–T16 e S13–S19 automatizados e passando.
+- [x] Cobertura de linhas ≥ 90%.
+- [x] Todos os workflows verdes no PR desta leva; `release.yml` verde em ensaio.
+- [x] S01–S12 vermelhos no job esperado, com links registrados aqui.
 - [ ] Ruleset da `main` exige os jobs de `ci` e `security`.
-- [ ] Falhas não óbvias registradas em `docs/problems/`.
+- [x] Falhas não óbvias registradas em `docs/problems/`.
 
 ## Riscos
 
@@ -231,3 +231,37 @@ com cabeçalho de origem e licença. É um pouco mais novo que o instalado no ho
   rodam no CI e localmente; uma brecha nova vira caso de teste.
 - **Scorecard** penaliza coisas fora do nosso controle (ex.: poucos mantenedores).
   Só informativo.
+
+## Resultado
+
+Registrado em 2026-11-01. Os PRs dos casos S01–S12 tinham como base a `ci/pipeline`
+e foram criados pela API, sem hooks locais.
+
+**PR desta leva (#1), todos os workflows verdes:** [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351215011),
+[security](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351214929), [dast](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351214985),
+[release](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351215082) (ensaio: `publish` pulado fora de tag).
+
+| ID | PR | Bloqueado por | Run |
+|---|---|---|---|
+| S01 | #2 | `ci / rust` (clippy) | [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351795028) |
+| S02 | #3 | `ci / rust` (testes); também `ci / sandbox` | [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351815117) |
+| S03 | #4 | `ci / rust` (llvm-cov abaixo de 90%) | [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351821726) |
+| S04 | #5 | `ci / commits` | [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351827837) |
+| S05 | #6 | `cargo-audit`, `cargo-deny`, `osv-scanner` (`smallvec 1.6.0`, RUSTSEC-2021-0003) | [security](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351834351) |
+| S06 | #7 | `cargo-deny` (`lzo1x 0.2.2`, GPL-2.0) | [security](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351841181) |
+| S07 | #8 | `security / workflows` | [security](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351848400) |
+| S08 | #9 | `security / semgrep` (regra própria) | [security](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351857713) |
+| S09 | #10 | `security / semgrep` (regra própria) | [security](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351862660) |
+| S10 | — | push protection do GitHub: a API recusou o commit (`HTTP 422, Secret detected in content`), então nem branch nem PR chegaram a existir | — |
+| S11 | #11 | `ci / rust` (clippy `unwrap_used`) | [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351869144) |
+| S12 | #12 | `ci / model-js` (passo "Plugin manifest") | [ci](https://github.com/DaviFelype/TheDailyBugle/actions/runs/41351874869) |
+
+Observações:
+
+- O job chamado `frontend` neste documento foi dividido em `model-js` (testes do
+  `Model.js` e manifesto) e `qml` (`qmllint` no container Arch).
+- Em S05 e S06 o `ci / sandbox` também falha: o sandbox compila sem rede, então
+  uma crate nova fora do cache não baixa. Isso é esperado.
+- Em S09 o `ci / rust` também falhou no `rustfmt`, porque a linha de teste passou
+  de 100 colunas. Isso não muda o resultado: quem tinha que bloquear era o Semgrep, e
+  ele bloqueou.
