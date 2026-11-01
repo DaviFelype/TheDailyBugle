@@ -1,0 +1,136 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  commits:
+    name: commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: cocogitto
+      - name: Check commit messages
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: cog check "${BASE_SHA}..${HEAD_SHA}"
+
+  rust:
+    name: rust
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the Rust toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: cargo:cargo-nextest cargo:cargo-llvm-cov
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Tests with coverage
+        run: cargo llvm-cov nextest --locked --fail-under-lines 90
+
+  model-js:
+    name: model-js
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: node
+      - name: Model.js tests
+        run: node --test tests/js/
+      - name: Plugin manifest
+        run: tests/plugin/validate-manifest.sh
+
+  qml:
+    name: qml
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # Arch, like Omarchy: Ubuntu's qmllint (Qt 6.4) is far behind the host's.
+    container:
+      image: archlinux:base@ARCH_IMAGE_DIGEST
+    env:
+      # Packages come from a dated Arch Linux Archive snapshot, so the job is
+      # reproducible and follows the 7-day rule.
+      ARCH_SNAPSHOT: 2026/10/25
+    steps:
+      - name: Install Qt from the pinned Arch snapshot
+        run: |
+          echo "Server = https://archive.archlinux.org/repos/${ARCH_SNAPSHOT}/\$repo/os/\$arch" >/etc/pacman.d/mirrorlist
+          pacman -Syyuu --noconfirm --needed qt6-declarative
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Same commit as scripts/vendor/omarchy-plugin-validate.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: basecamp/omarchy
+          ref: b7e900cedd0c98e843aba4ae3ec301172044238a
+          path: .omarchy
+          sparse-checkout: shell
+          persist-credentials: false
+      - name: qmllint against Omarchy's UI types
+        env:
+          OMARCHY_SHELL_DIR: .omarchy/shell
+        run: tests/plugin/qmllint.sh
+
+  sandbox:
+    name: sandbox
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install bubblewrap and allow unprivileged user namespaces
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends bubblewrap
+          # Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor.
+          sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Install the Rust toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: cargo:cargo-nextest
+      - name: Sandbox tests
+        run: tests/sandbox/run.sh
