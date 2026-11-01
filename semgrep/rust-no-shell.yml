@@ -1,0 +1,21 @@
+rules:
+  - id: rust-no-shell
+    languages: [rust]
+    patterns:
+      - pattern-either:
+          - pattern: Command::new($SHELL)
+          - pattern: std::process::Command::new($SHELL)
+      - metavariable-regex:
+          metavariable: $SHELL
+          regex: ^"(/usr)?(/bin/)?(sh|bash|dash|zsh|fish)"$
+    message: >-
+      Never run commands through a shell: feed content could inject into it
+      (CLAUDE.md, security rules). Call the program directly with .arg().
+    severity: ERROR
+  - id: rust-no-shell-c-flag
+    languages: [rust]
+    pattern: $COMMAND.arg("-c")
+    message: >-
+      A "-c" argument usually means a shell is interpreting a string. Call the
+      program directly with .arg() instead (CLAUDE.md, security rules).
+    severity: ERROR
