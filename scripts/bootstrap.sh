@@ -32,6 +32,14 @@ mise install rust uv cargo-binstall
 
 info "Installing the Rust toolchain from rust-toolchain.toml"
 mise exec -- rustup toolchain install
+# An existing toolchain (e.g. installed by mise) does not get the components
+# listed in rust-toolchain.toml; without llvm-tools, cargo llvm-cov waits
+# forever on a hidden prompt. See docs/problems/2026-11-01-llvm-cov-hangs.md.
+mise exec -- rustup component add clippy rustfmt llvm-tools-preview
+for component in clippy rustfmt llvm-tools; do
+  mise exec -- rustup component list --installed | grep -q "^$component" ||
+    fail "rustup component '$component' is missing after install"
+done
 
 info "Installing $FUZZ_NIGHTLY for cargo-fuzz"
 mise exec -- rustup toolchain install "$FUZZ_NIGHTLY" --profile minimal
@@ -59,6 +67,14 @@ mise exec -- bash -c '
   actionlint -version | head -n1
   zizmor --version
 '
+
+# Pushing files under .github/workflows/ needs the `workflow` scope.
+# See docs/problems/2026-11-01-push-needs-workflow-scope.md.
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+  if ! gh auth status 2>&1 | grep -q "'workflow'"; then
+    printf '\033[1;33mwarning:\033[0m gh token lacks the workflow scope; run: gh auth refresh -h github.com -s workflow\n' >&2
+  fi
+fi
 
 if [[ -f lefthook.yml ]]; then
   info "Installing git hooks"
