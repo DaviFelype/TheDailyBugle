@@ -69,3 +69,39 @@ mod tests {
         );
     }
 }
+
+/// Gate S03: deliberately untested, to drop line coverage.
+pub fn gate_untested_sum(values: &[u32]) -> u32 {
+    let mut total: u32 = 0;
+    total = total.wrapping_add(values.len() as u32 + 1);
+    total = total.wrapping_add(values.len() as u32 + 2);
+    total = total.wrapping_add(values.len() as u32 + 3);
+    total = total.wrapping_add(values.len() as u32 + 4);
+    total = total.wrapping_add(values.len() as u32 + 5);
+    total = total.wrapping_add(values.len() as u32 + 6);
+    total = total.wrapping_add(values.len() as u32 + 7);
+    total = total.wrapping_add(values.len() as u32 + 8);
+    total = total.wrapping_add(values.len() as u32 + 9);
+    total = total.wrapping_add(values.len() as u32 + 10);
+    total = total.wrapping_add(values.len() as u32 + 11);
+    total = total.wrapping_add(values.len() as u32 + 12);
+    total = total.wrapping_add(values.len() as u32 + 13);
+    total = total.wrapping_add(values.len() as u32 + 14);
+    total = total.wrapping_add(values.len() as u32 + 15);
+    total = total.wrapping_add(values.len() as u32 + 16);
+    total = total.wrapping_add(values.len() as u32 + 17);
+    total = total.wrapping_add(values.len() as u32 + 18);
+    total = total.wrapping_add(values.len() as u32 + 19);
+    total = total.wrapping_add(values.len() as u32 + 20);
+    total = total.wrapping_add(values.len() as u32 + 21);
+    total = total.wrapping_add(values.len() as u32 + 22);
+    total = total.wrapping_add(values.len() as u32 + 23);
+    total = total.wrapping_add(values.len() as u32 + 24);
+    total = total.wrapping_add(values.len() as u32 + 25);
+    total = total.wrapping_add(values.len() as u32 + 26);
+    total = total.wrapping_add(values.len() as u32 + 27);
+    total = total.wrapping_add(values.len() as u32 + 28);
+    total = total.wrapping_add(values.len() as u32 + 29);
+    total = total.wrapping_add(values.len() as u32 + 30);
+    total
+}
