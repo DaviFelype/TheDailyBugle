@@ -1,0 +1,16 @@
+# Temporary: finds the archlinux:base digest for ci.yml. Dropped before merge.
+name: probe
+on:
+  pull_request:
+permissions: {}
+jobs:
+  digest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: archlinux digest
+        run: |
+          docker pull --quiet archlinux:base
+          docker image inspect --format '{{index .RepoDigests 0}}' archlinux:base
+          docker image inspect --format '{{.Created}}' archlinux:base
