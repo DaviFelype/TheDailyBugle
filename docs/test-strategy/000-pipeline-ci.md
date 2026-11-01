@@ -70,10 +70,14 @@ rust-analyzer do editor. Docker não entra: o grupo `docker` equivale a root.
 2. **`scripts/sandbox.sh <comando>`** roda o comando com bubblewrap:
    - Rede: `cargo fetch` roda antes, fora do sandbox (só baixa, não executa nada);
      dentro, `--unshare-all` e cargo `--offline`.
-   - Arquivos: `/` só leitura; `$HOME` vira tmpfs vazio (some `~/.ssh`,
-     `~/.config/gh`, navegador); voltam só leitura o toolchain do rustup, as
-     instalações do mise e o registro do cargo. O projeto tem escrita, menos `.git`
-     (só leitura, para nada plantar hooks que rodariam fora do sandbox).
+   - Arquivos: `/` só leitura; `$HOME`, `/run` e `/tmp` viram tmpfs vazios (some
+     `~/.ssh`, `~/.config/gh`, navegador e os sockets de D-Bus, Wayland e
+     ssh-agent); voltam só leitura o toolchain do rustup, as instalações do mise e o
+     registro do cargo (sem `credentials.toml`). O projeto fica **só leitura**,
+     exceto `target/` e as pastas de saída do fuzz: assim nada planta hooks em
+     `.git` nem altera `lefthook.yml` ou scripts que depois rodam no host.
+     *(Endurecido durante a implementação; antes era "projeto com escrita, menos
+     `.git`".)*
    - Ambiente: `--clearenv` com lista fixa (`PATH`, `HOME`, `TERM`, variáveis do
      cargo/rustup). Tokens como `GH_TOKEN` não entram.
    - `--die-with-parent` e `--new-session` (bloqueia injeção no terminal via
@@ -93,14 +97,14 @@ rust-analyzer do editor. Docker não entra: o grupo `docker` equivale a root.
 | Workflow | Gatilho | Jobs |
 |---|---|---|
 | `ci.yml` | PR, push em `main` | `commits` (`cog check` no intervalo do PR) · `rust` (fmt, clippy `-D warnings`, `nextest`, `llvm-cov --fail-under-lines 90`) · `frontend` (`qmllint`, `node --test`, validação do manifesto) |
-| `security.yml` | PR, push em `main`, semanal | `gitleaks` (histórico inteiro) · `cargo-audit` · `cargo-deny` · `osv-scanner` · `semgrep` (`p/rust`, `p/javascript`, `p/secrets`, `p/github-actions` + `.semgrep/`, SARIF no GitHub) · `workflows` (`actionlint`, `zizmor`) · `codeql` (Rust, JavaScript, Actions) |
+| `security.yml` | PR, push em `main`, semanal | `gitleaks` (histórico inteiro) · `cargo-audit` · `cargo-deny` · `osv-scanner` · `semgrep` (`p/rust`, `p/javascript`, `p/secrets`, `p/github-actions` + `semgrep/`, SARIF no GitHub) · `workflows` (`actionlint`, `zizmor`) · `codeql` (Rust, JavaScript, Actions) |
 | `scorecard.yml` | push em `main`, semanal | OpenSSF Scorecard, publica resultado |
 | `dast.yml` | PR (60 s por alvo), noturno (30 min por alvo) | `cargo fuzz run` em cada alvo; corpus e crashes como artefato |
 | `release.yml` | tag `v*`, `workflow_dispatch` (ensaio) | build `x86_64` (`ubuntu-24.04`) e `aarch64` (`ubuntu-24.04-arm`) com `--locked` · tar.gz + SHA-256 · SBOM CycloneDX · attestation · `gh release create` (pulado no ensaio) |
 
-Regras próprias do Semgrep (`.semgrep/`), tiradas das regras de segurança do produto:
+Regras próprias do Semgrep (`semgrep/`, cada uma com arquivo de teste), tiradas das regras de segurança do produto:
 
-- QML com `Text.RichText`, `Text.StyledText` ou `Text.MarkdownText`.
+- QML com `Text.RichText`, `Text.StyledText`, `Text.MarkdownText` ou `Text.AutoText`.
 - QML com `Qt.openUrlExternally` (links só via `xdg-open` no binário/processo).
 - Rust com `Command::new("sh" | "bash")` ou `-c`.
 
@@ -127,8 +131,9 @@ Lints do Cargo (`[lints]` no `Cargo.toml`): `unsafe_code = "forbid"`,
 | T13 | Testes rodam no sandbox | `scripts/sandbox.sh cargo nextest run` | testes passam, sem rede | integração (bash) |
 | T14 | Código de saída preservado | `scripts/sandbox.sh sh -c 'exit 7'` | saída 7 | integração (bash) |
 | T15 | Já dentro de namespace | `sandbox.sh` num namespace de usuário | roda direto, aviso em stderr, mesma saída | integração (bash) |
+| T16 | Saída do build tem escrita | criar arquivo em `target/` | funciona | integração (bash) |
 
-Os testes do sandbox (T13–T15, S13–S17) ficam em `tests/sandbox/run.sh`, em bash
+Os testes do sandbox (T13–T16, S13–S19) ficam em `tests/sandbox/run.sh`, em bash
 puro. No CI, o job habilita namespaces de usuário no runner
 (`kernel.apparmor_restrict_unprivileged_userns=0`) e instala o `bubblewrap` via apt.
 
@@ -161,7 +166,9 @@ Casos do sandbox (automatizados em `tests/sandbox/run.sh`, não são PRs):
 | S14 | Exfiltrar por rede | conectar em `1.1.1.1:443` e resolver DNS | falha |
 | S15 | Ler credenciais | ler `$HOME/.ssh`, `$HOME/.config/gh` | não existem |
 | S16 | Ler token do ambiente | `GH_TOKEN=falso` fora; `echo $GH_TOKEN` dentro | vazio |
-| S17 | Escrever fora do projeto | criar arquivo no `$HOME` real | não persiste no host |
+| S17 | Escrever fora do projeto | criar arquivo no `$HOME` e em `/tmp` | não persiste no host |
+| S18 | Alterar arquivo que roda no host | criar arquivo na raiz do projeto | falha (só leitura) |
+| S19 | Usar sockets do host | listar `/run` (D-Bus, Wayland, ssh-agent) | vazio |
 
 Os hooks locais bloqueariam vários desses commits. Para não usar `--no-verify`, os
 commits dos PRs S01–S12 são criados direto no GitHub pela API (`gh api`), como faria
@@ -169,9 +176,11 @@ um contribuidor sem os hooks. É exatamente o cenário que o CI precisa cobrir.
 
 ## Dados de teste
 
-Sem fixtures nesta leva. O validador do Omarchy é copiado de
-`/usr/share/omarchy/bin/omarchy-plugin-validate` (Omarchy 4.0.0.alpha, MIT) para
-`scripts/vendor/`, com cabeçalho de origem e licença.
+Sem fixtures nesta leva. O validador do Omarchy é copiado do upstream
+(`basecamp/omarchy`, commit `b7e900c` de 2026-10-15, MIT) para `scripts/vendor/`,
+com cabeçalho de origem e licença. É um pouco mais novo que o instalado no host
+(4.0.0.alpha); o teste roda os dois quando o host tem Omarchy. O job `qml` usa o
+`shell/` do mesmo commit para resolver os tipos `qs.Ui`.
 
 ### Versões a fixar (releases com 7+ dias em 2026-11-01)
 
@@ -185,6 +194,7 @@ Sem fixtures nesta leva. O validador do Omarchy é copiado de
 | `actions/upload-artifact` | v7.0.2 | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` |
 | `actions/download-artifact` | v8.0.2 | `9000827ccba6bdab643e8b6fd33ac0654aef8333` |
 | `actions/attest-build-provenance` | v4.2.2 | `4d101475d8b20a2381f78447822ac1eab6504dd8` |
+| mise (instalado pelo `jdx/mise-action`) | 2026.10.19 | 2026-10-24 |
 | `osv-scanner` (`mise.ci.toml`, aqua) | 2.7.0 | 2026-10-12 |
 | `cargo-cyclonedx` (`mise.ci.toml`, cargo) | 0.5.9 | 2026-03-19 |
 | `semgrep` (movido para `mise.ci.toml`) | 1.182.0 | já fixado |
@@ -194,7 +204,7 @@ Sem fixtures nesta leva. O validador do Omarchy é copiado de
 
 ## Critério de pronto
 
-- [ ] T01–T15 e S13–S17 automatizados e passando.
+- [ ] T01–T16 e S13–S19 automatizados e passando.
 - [ ] Cobertura de linhas ≥ 90%.
 - [ ] Todos os workflows verdes no PR desta leva; `release.yml` verde em ensaio.
 - [ ] S01–S12 vermelhos no job esperado, com links registrados aqui.
