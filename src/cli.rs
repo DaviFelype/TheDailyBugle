@@ -21,13 +21,16 @@ impl fmt::Display for UsageError {
 impl std::error::Error for UsageError {}
 
 /// Parses the arguments that follow the program name.
-pub fn parse_command(_args: &[String]) -> Result<Command, UsageError> {
-    todo!()
+pub fn parse_command(args: &[String]) -> Result<Command, UsageError> {
+    match args {
+        [flag] if flag == "--version" => Ok(Command::Version),
+        _ => Err(UsageError),
+    }
 }
 
 /// The line printed by `--version`.
 pub fn version_line() -> String {
-    todo!()
+    format!("thedailybugle {}", env!("CARGO_PKG_VERSION"))
 }
 
 #[cfg(test)]
