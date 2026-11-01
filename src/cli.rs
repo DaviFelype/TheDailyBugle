@@ -69,3 +69,8 @@ mod tests {
         );
     }
 }
+
+/// Gate S11: unwrap in product code.
+pub fn gate_parse_one() -> u8 {
+    "1".parse::<u8>().unwrap()
+}
