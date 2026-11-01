@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "davifelype.thedailybugle",
+  "name": "TheDailyBugle",
+  "version": "0.1.0",
+  "author": "Davi Felype",
+  "description": "Cybersecurity feed: exploited CVEs with PoC, ransomware and security news",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "omarchy/BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "TheDailyBugle",
+    "description": "Cybersecurity feed",
+    "category": "Information",
+    "allowMultiple": false
+  }
+}
