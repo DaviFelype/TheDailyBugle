@@ -1,0 +1,5 @@
+rules:
+  # Suggests `uses: $/...` for local actions, but actionlint 1.7.12 rejects
+  # that syntax. Revisit when actionlint supports it.
+  self-repository:
+    disable: true
