@@ -1,0 +1,5 @@
+# Rule test files contain the patterns on purpose.
+semgrep/
+target/
+fuzz/target/
+fuzz/corpus/

@@ -1,0 +1,10 @@
+rules:
+  - id: qml-no-rich-text
+    languages: [generic]
+    paths:
+      include: ["*.qml"]
+    pattern-regex: \bText\.(RichText|StyledText|MarkdownText|AutoText)\b
+    message: >-
+      Feed text is untrusted. Render it with Text.PlainText; rich, styled,
+      markdown and auto text interpret markup (CLAUDE.md, security rules).
+    severity: ERROR

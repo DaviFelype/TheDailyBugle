@@ -1,0 +1,10 @@
+rules:
+  - id: qml-no-open-url-externally
+    languages: [generic]
+    paths:
+      include: ["*.qml"]
+    pattern-regex: \bQt\.openUrlExternally\s*\(
+    message: >-
+      Links open only after the https:// check, through xdg-open without a
+      shell (CLAUDE.md, security rules). Do not open URLs from QML directly.
+    severity: ERROR
