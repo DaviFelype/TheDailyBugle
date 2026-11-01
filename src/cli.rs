@@ -22,6 +22,7 @@ impl std::error::Error for UsageError {}
 
 /// Parses the arguments that follow the program name.
 pub fn parse_command(args: &[String]) -> Result<Command, UsageError> {
+    let unused_gate_value = 1;
     match args {
         [flag] if flag == "--version" => Ok(Command::Version),
         _ => Err(UsageError),
