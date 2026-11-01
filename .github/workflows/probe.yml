@@ -1,4 +1,5 @@
 # Temporary: finds the archlinux:base digest for ci.yml. Dropped before merge.
+# Logs are unreadable from ai-jail, so results go out as annotations.
 name: probe
 on:
   pull_request:
@@ -9,8 +10,8 @@ jobs:
     timeout-minutes: 5
     permissions: {}
     steps:
-      - name: archlinux digest
+      - name: archlinux dated base tags
         run: |
-          docker pull --quiet archlinux:base
-          docker image inspect --format '{{index .RepoDigests 0}}' archlinux:base
-          docker image inspect --format '{{.Created}}' archlinux:base
+          curl -fsS --max-time 30 \
+            'https://hub.docker.com/v2/repositories/library/archlinux/tags?name=base-2026&page_size=10&ordering=last_updated' \
+            | jq -r '.results[] | "::notice title=\(.name)::\(.digest) \(.last_updated)"'
