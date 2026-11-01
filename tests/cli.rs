@@ -38,3 +38,8 @@ fn non_utf8_argument_is_a_usage_error_not_a_crash() {
     assert!(output.stdout.is_empty());
     assert_eq!(output.status.code(), Some(2));
 }
+
+#[test]
+fn gate_s02_always_fails() {
+    assert_eq!(1, 2);
+}
