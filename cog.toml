@@ -1,0 +1,14 @@
+# cocogitto: commit checks, changelog and version bumps.
+tag_prefix = "v"
+branch_whitelist = ["main"]
+ignore_merge_commits = true
+
+[commit_types]
+security = { changelog_title = "Security" }
+
+[changelog]
+path = "CHANGELOG.md"
+template = "remote"
+remote = "github.com"
+repository = "TheDailyBugle"
+owner = "DaviFelype"

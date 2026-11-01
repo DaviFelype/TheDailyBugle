@@ -1,0 +1,31 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Fuzzing (corpus is committed on purpose; crashes go to docs/problems/)
+/fuzz/target/
+/fuzz/artifacts/
+/fuzz/coverage/
+
+# Coverage
+*.profraw
+*.profdata
+lcov.info
+/coverage/
+
+# Node (Model.js tests)
+node_modules/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Personal sandbox config (ai-jail)
+.ai-jail
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

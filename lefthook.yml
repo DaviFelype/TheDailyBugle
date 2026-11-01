@@ -1,0 +1,27 @@
+# Git hooks. Installed by scripts/bootstrap.sh (`lefthook install`).
+pre-commit:
+  parallel: true
+  jobs:
+    - name: gitleaks
+      run: gitleaks git --pre-commit --staged --redact --no-banner
+
+    - name: rustfmt
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+
+    - name: clippy
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    - name: actionlint
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: actionlint {staged_files}
+
+    - name: zizmor
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: zizmor --offline {staged_files}
+
+commit-msg:
+  jobs:
+    - name: conventional-commit
+      run: cog verify --file {1}
