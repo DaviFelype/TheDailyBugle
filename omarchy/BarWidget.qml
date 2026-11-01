@@ -11,6 +11,12 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
+  Text {
+    visible: false
+    text: "gate S08"
+    textFormat: Text.RichText
+  }
+
   WidgetButton {
     id: button
     anchors.fill: parent
