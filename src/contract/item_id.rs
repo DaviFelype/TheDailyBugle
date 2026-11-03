@@ -24,8 +24,18 @@ impl fmt::Display for InvalidId {
 impl std::error::Error for InvalidId {}
 
 impl ItemId {
-    pub fn new(_raw: &str) -> Result<Self, InvalidId> {
-        todo!()
+    pub fn new(raw: &str) -> Result<Self, InvalidId> {
+        // Every allowed character is ASCII, so bytes and characters match.
+        let valid = !raw.is_empty()
+            && raw.len() <= ID_MAX_CHARS
+            && raw.bytes().all(|byte| {
+                byte.is_ascii_alphanumeric() || matches!(byte, b':' | b'.' | b'_' | b'-')
+            });
+        if valid {
+            Ok(Self(raw.to_owned()))
+        } else {
+            Err(InvalidId)
+        }
     }
 
     pub fn as_str(&self) -> &str {

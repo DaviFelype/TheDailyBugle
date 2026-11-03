@@ -18,8 +18,12 @@ pub struct Feed {
 
 impl Feed {
     /// Keeps the first `MAX_ITEMS` items, in the given order.
-    pub fn new(_items: Vec<Item>) -> Self {
-        todo!()
+    pub fn new(mut items: Vec<Item>) -> Self {
+        items.truncate(MAX_ITEMS);
+        Self {
+            schema_version: SCHEMA_VERSION,
+            items,
+        }
     }
 
     pub fn items(&self) -> &[Item] {
@@ -28,7 +32,7 @@ impl Feed {
 
     /// One line of JSON, the contract read by the plugin.
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        todo!()
+        serde_json::to_string(self)
     }
 }
 

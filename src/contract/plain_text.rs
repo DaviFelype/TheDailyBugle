@@ -10,6 +10,9 @@ pub const TITLE_MAX_CHARS: usize = 300;
 /// Longest source name kept, in characters.
 pub const SOURCE_MAX_CHARS: usize = 64;
 
+/// Ends a cut text, so the reader knows it goes on.
+const ELLIPSIS: char = '…';
+
 /// One line of text without control or bidi characters, without repeated or
 /// surrounding spaces, and within a length limit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -30,18 +33,78 @@ impl std::error::Error for EmptyText {}
 
 impl PlainText {
     /// Cleans an item title.
-    pub fn title(_raw: &str) -> Result<Self, EmptyText> {
-        todo!()
+    pub fn title(raw: &str) -> Result<Self, EmptyText> {
+        Self::clean(raw, TITLE_MAX_CHARS)
     }
 
     /// Cleans the name of the source an item came from.
-    pub fn source(_raw: &str) -> Result<Self, EmptyText> {
-        todo!()
+    pub fn source(raw: &str) -> Result<Self, EmptyText> {
+        Self::clean(raw, SOURCE_MAX_CHARS)
     }
 
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    fn clean(raw: &str, max_chars: usize) -> Result<Self, EmptyText> {
+        let mut text = String::new();
+        let mut kept_chars = 0;
+        let mut space_pending = false;
+
+        for character in raw.chars() {
+            if character.is_whitespace() {
+                // Leading spaces are dropped; inner runs become one space.
+                space_pending = !text.is_empty();
+                continue;
+            }
+            if is_hidden(character) {
+                continue;
+            }
+            if space_pending {
+                text.push(' ');
+                kept_chars += 1;
+                space_pending = false;
+            }
+            text.push(character);
+            kept_chars += 1;
+            // Going past the limit is enough to know a cut is needed, and stops
+            // early on huge input.
+            if kept_chars > max_chars {
+                cut(&mut text, max_chars);
+                break;
+            }
+        }
+
+        if text.is_empty() {
+            Err(EmptyText)
+        } else {
+            Ok(Self(text))
+        }
+    }
+}
+
+/// Control characters (terminal escapes, NUL) and the Unicode marks that
+/// reorder text (Trojan Source), which would make the shown text differ from
+/// what it reads as.
+fn is_hidden(character: char) -> bool {
+    character.is_control()
+        || matches!(
+            character,
+            '\u{200E}' | '\u{200F}' | '\u{061C}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}'
+        )
+}
+
+/// Keeps the first `max_chars - 1` characters and adds the ellipsis.
+fn cut(text: &mut String, max_chars: usize) {
+    let kept = max_chars.saturating_sub(1);
+    let end = text
+        .char_indices()
+        .nth(kept)
+        .map_or(text.len(), |(index, _)| index);
+    text.truncate(end);
+    let without_trailing_space = text.trim_end().len();
+    text.truncate(without_trailing_space);
+    text.push(ELLIPSIS);
 }
 
 #[cfg(test)]
