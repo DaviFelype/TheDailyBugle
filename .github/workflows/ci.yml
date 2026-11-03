@@ -91,10 +91,10 @@ jobs:
       # reproducible and follows the 7-day rule.
       ARCH_SNAPSHOT: 2026/10/25
     steps:
-      - name: Install Qt from the pinned Arch snapshot
+      - name: Install Qt and Quickshell from the pinned Arch snapshot
         run: |
           echo "Server = https://archive.archlinux.org/repos/${ARCH_SNAPSHOT}/\$repo/os/\$arch" >/etc/pacman.d/mirrorlist
-          pacman -Syyuu --noconfirm --needed qt6-declarative
+          pacman -Syyuu --noconfirm --needed qt6-declarative quickshell
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
