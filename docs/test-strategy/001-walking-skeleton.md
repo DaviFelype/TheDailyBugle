@@ -20,7 +20,7 @@ fontes reais (Fase 3) só vão preencher esse contrato.
   - Itens de amostra embutidos no binário (`src/sample.rs`), um por categoria,
     marcados como amostra no título e na fonte.
   - JSON Schema do contrato em `schema/feed-v1.schema.json`.
-  - Plugin: `BarWidget.qml` (ícone + contador), `Panel.qml` (popup com a lista,
+  - Plugin: `BarWidget.qml` (ícone + contador), `FeedPanel.qml` (popup com a lista,
     clique abre o link), `Model.js` (parse defensivo do JSON e regras de exibição).
   - Novos alvos de fuzzing (`plain_text`, `https_url`) no lugar de `parse_command`.
   - Regra Semgrep nova: QML não chama shell em `Process`.
@@ -101,7 +101,7 @@ fontes reais (Fase 3) só vão preencher esse contrato.
 | T18 | `parseFeed` ignora campos novos | item com `severity` extra | item aceito | unidade (node) |
 | T19 | Estado de erro mantém itens | `ok` seguido de `error` | itens anteriores preservados | unidade (node) |
 | T20 | Rótulo do bar em erro | estado `error` | glifo de aviso, não número | unidade (node) |
-| T21 | QML compila | `BarWidget.qml`, `Panel.qml` | `qmllint` sem avisos | integração |
+| T21 | QML compila | `BarWidget.qml`, `FeedPanel.qml` | `qmllint` sem avisos | integração |
 | T22 | Manifesto | `manifest.json` | validador sai com 0 | integração |
 | M01 | Instalação local | `cargo install` + `omarchy plugin add <repo> --enable` | ícone no bar, popup com 3 itens | manual (você) |
 | M02 | Binário ausente | renomear o binário e recarregar | glifo de aviso, bar continua de pé | manual (você) |
