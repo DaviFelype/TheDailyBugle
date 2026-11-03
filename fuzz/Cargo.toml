@@ -13,8 +13,15 @@ libfuzzer-sys = "=0.4.13"
 thedailybugle = { path = ".." }
 
 [[bin]]
-name = "parse_command"
-path = "fuzz_targets/parse_command.rs"
+name = "plain_text"
+path = "fuzz_targets/plain_text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "https_url"
+path = "fuzz_targets/https_url.rs"
 test = false
 doc = false
 bench = false
