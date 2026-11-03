@@ -16,5 +16,19 @@ import_root="$(mktemp -d)"
 trap 'rm -rf "$import_root"' EXIT
 ln -s "$(cd "$shell_dir" && pwd)" "$import_root/qs"
 
-"$qmllint" --max-warnings 0 -I "$import_root" "$root"/omarchy/*.qml
+status=0
+output="$("$qmllint" --max-warnings 0 -I "$import_root" "$root"/omarchy/*.qml 2>&1)" || status=$?
+if (( status != 0 )); then
+  printf '%s\n' "$output" >&2
+  # Actions logs are out of reach from ai-jail, but annotations come through
+  # the API (docs/problems/2026-11-01-actions-logs-blocked-in-ai-jail.md).
+  if [[ ${GITHUB_ACTIONS:-} == true ]]; then
+    message="$(printf '%s' "$output" | tail -c 6000)"
+    message="${message//'%'/'%25'}"
+    message="${message//$'\r'/'%0D'}"
+    message="${message//$'\n'/'%0A'}"
+    echo "::error title=qmllint::${message}"
+  fi
+  exit "$status"
+fi
 echo "ok: qmllint"
