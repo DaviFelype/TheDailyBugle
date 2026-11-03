@@ -1,0 +1,13 @@
+rules:
+  - id: qml-no-shell-command
+    languages: [generic]
+    paths:
+      include: ["*.qml"]
+    # An argument vector whose first element is a shell: whatever follows
+    # gets parsed as a command line.
+    pattern-regex: \[\s*"(?:[^"\s]*/)?(?:ba|da|k|z|fi)?sh"\s*,
+    message: >-
+      Run commands as argument lists without a shell, e.g.
+      ["xdg-open", url]. A shell would parse text that may come from the
+      feed (CLAUDE.md, security rules).
+    severity: ERROR
