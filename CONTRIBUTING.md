@@ -84,7 +84,7 @@ tests/sandbox/run.sh                            # o próprio sandbox
 Fuzzing (o `--target` é obrigatório; ver `docs/problems/2026-11-01-cargo-fuzz-musl-target.md`):
 
 ```sh
-scripts/sandbox.sh cargo +nightly-2026-10-15 fuzz run --target x86_64-unknown-linux-gnu parse_command -- -max_total_time=60
+scripts/sandbox.sh cargo +nightly-2026-10-15 fuzz run --target x86_64-unknown-linux-gnu plain_text -- -max_total_time=60
 ```
 
 Dentro do ai-jail, acrescente `ASAN_OPTIONS=detect_leaks=0` (ver
