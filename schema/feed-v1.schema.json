@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DaviFelype/TheDailyBugle/blob/main/schema/feed-v1.schema.json",
+  "title": "TheDailyBugle feed, contract v1",
+  "description": "Printed by `thedailybugle feed --json` and read by the Omarchy plugin.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "items"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "items": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "$ref": "#/$defs/item" }
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "title", "url", "source"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9:._-]{1,128}$" },
+        "category": { "enum": ["vulnerability", "ransomware", "news"] },
+        "title": { "$ref": "#/$defs/plainText", "maxLength": 300 },
+        "url": {
+          "description": "https only, no user name or password before the host.",
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://[^/?#@\\s]+([/?#][^\\s]*)?$"
+        },
+        "source": { "$ref": "#/$defs/plainText", "maxLength": 64 }
+      }
+    },
+    "plainText": {
+      "description": "One line: no control or bidi characters, no surrounding spaces.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s\\u0000-\\u001F\\u007F-\\u009F\\u200E\\u200F\\u061C\\u202A-\\u202E\\u2066-\\u2069]([^\\u0000-\\u001F\\u007F-\\u009F\\u200E\\u200F\\u061C\\u202A-\\u202E\\u2066-\\u2069]*[^\\s\\u0000-\\u001F\\u007F-\\u009F\\u200E\\u200F\\u061C\\u202A-\\u202E\\u2066-\\u2069])?$"
+    }
+  }
+}

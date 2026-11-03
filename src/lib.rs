@@ -2,3 +2,5 @@
 //! Omarchy bar widget.
 
 pub mod cli;
+pub mod contract;
+pub mod sample;

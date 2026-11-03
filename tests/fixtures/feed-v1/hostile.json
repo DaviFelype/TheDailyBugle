@@ -1,0 +1,8 @@
+{"schemaVersion":1,"__proto__":{"polluted":true},"items":[
+{"id":"x:1","category":"news","title":"Script link","url":"javascript:alert(1)","source":"Example"},
+{"id":"x:2","category":"news","title":{"text":"object title"},"url":"https://example.com/2","source":"Example"},
+{"id":"x:3","category":"weather","title":"Unknown category","url":"https://example.com/3","source":"Example"},
+{"__proto__":{"polluted":true},"id":"x:4","category":"news","title":"Survivor","url":"https://example.com/4","source":"Example"},
+"not an object",
+null
+]}
