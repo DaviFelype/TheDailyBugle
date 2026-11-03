@@ -59,8 +59,14 @@ impl fmt::Display for ItemError {
 impl std::error::Error for ItemError {}
 
 impl Item {
-    pub fn from_raw(_raw: &RawItem<'_>) -> Result<Self, ItemError> {
-        todo!()
+    pub fn from_raw(raw: &RawItem<'_>) -> Result<Self, ItemError> {
+        Ok(Self {
+            id: ItemId::new(raw.id).map_err(ItemError::Id)?,
+            category: raw.category,
+            title: PlainText::title(raw.title).map_err(ItemError::Title)?,
+            url: HttpsUrl::parse(raw.url).map_err(ItemError::Url)?,
+            source: PlainText::source(raw.source).map_err(ItemError::Source)?,
+        })
     }
 }
 

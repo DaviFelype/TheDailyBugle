@@ -3,6 +3,7 @@
 use std::fmt;
 
 use serde::Serialize;
+use url::Url;
 
 /// Longest link kept, in bytes, before and after normalization.
 pub const URL_MAX_BYTES: usize = 2048;
@@ -36,8 +37,24 @@ impl fmt::Display for UrlError {
 impl std::error::Error for UrlError {}
 
 impl HttpsUrl {
-    pub fn parse(_raw: &str) -> Result<Self, UrlError> {
-        todo!()
+    pub fn parse(raw: &str) -> Result<Self, UrlError> {
+        // Checked before parsing too, so huge input is not parsed at all.
+        if raw.len() > URL_MAX_BYTES {
+            return Err(UrlError::TooLong);
+        }
+        let url = Url::parse(raw).map_err(|_| UrlError::Malformed)?;
+        if url.scheme() != "https" {
+            return Err(UrlError::NotHttps);
+        }
+        if !url.username().is_empty() || url.password().is_some() {
+            return Err(UrlError::HasCredentials);
+        }
+        // Percent-encoding can make the normalized link longer than the input.
+        let normalized = String::from(url);
+        if normalized.len() > URL_MAX_BYTES {
+            return Err(UrlError::TooLong);
+        }
+        Ok(Self(normalized))
     }
 
     pub fn as_str(&self) -> &str {
