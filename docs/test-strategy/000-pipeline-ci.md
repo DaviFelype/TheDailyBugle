@@ -208,7 +208,7 @@ com cabeçalho de origem e licença. É um pouco mais novo que o instalado no ho
 - [x] Cobertura de linhas ≥ 90%.
 - [x] Todos os workflows verdes no PR desta leva; `release.yml` verde em ensaio.
 - [x] S01–S12 vermelhos no job esperado, com links registrados aqui.
-- [ ] Ruleset da `main` exige os jobs de `ci` e `security`.
+- [x] Ruleset da `main` exige os jobs de `ci` e `security` (2026-11-03: `commits`, `rust`, `model-js`, `qml`, `sandbox`, `gitleaks`, `cargo-audit`, `cargo-deny`, `osv-scanner`, `semgrep`, `workflows`, todos com origem GitHub Actions; CodeQL fica de fora até uma semana sem falso positivo).
 - [x] Falhas não óbvias registradas em `docs/problems/`.
 
 ## Riscos
