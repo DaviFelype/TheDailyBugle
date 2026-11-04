@@ -187,10 +187,13 @@ casos de segurança, dados de teste/fixtures, critério de pronto e riscos.
 Resultado dos casos S01–S12 em `docs/test-strategy/000-pipeline-ci.md` (PRs #2–#12).
 
 ### Fase 2 — Walking skeleton (ponta a ponta com dados falsos)
-- [ ] Estratégia de teste 001.
-- [ ] `thedailybugle feed --json` devolve itens de fixture conforme o JSON Schema.
-- [ ] Plugin mínimo: ícone no bar + popup listando os itens.
-- [ ] Instalação local via `omarchy plugin add` apontando para o repositório.
+- [x] Estratégia de teste 001.
+- [x] `thedailybugle feed --json` devolve itens de fixture conforme o JSON Schema.
+- [x] Plugin mínimo: ícone no bar + popup listando os itens.
+- [x] Instalação local via `omarchy plugin add` apontando para o repositório
+  (binário em `~/.local/bin`; ver `docs/problems/2026-11-03-cargo-bin-not-in-session-path.md`).
+
+Concluída em 2026-11-03 (PR #13).
 
 ### Fase 3 — Fontes de dados (uma estratégia de teste por fonte)
 - [ ] 3.1 CVEs com PoC (KEV + NVD + EPSS + PoC-in-GitHub).
