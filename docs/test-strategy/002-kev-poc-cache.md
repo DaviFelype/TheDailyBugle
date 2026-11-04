@@ -111,7 +111,7 @@ em disco com TTL por fonte, que as próximas fontes vão reusar.
 | T04 | CVE repetido | mesmo `cveID` duas vezes | só a primeira | unidade |
 | T05 | Título e URL | entrada real | título `CVE… nome`, URL do NVD montada | unidade |
 | T06 | Ransomware | `Known`, `Unknown`, `known`, ausente | `true` só para `Known` | unidade |
-| T07 | PoC real | fixture `poc/CVE-2026-119977.json` | `pocCount` = 3 | unidade |
+| T07 | PoC real | fixture `poc/CVE-2026-97229.json` | `pocCount` = 7 | unidade |
 | T08 | PoC 404 | resposta 404 | `pocCount` = 0, sem falha | integração (wiremock) |
 | T09 | PoC com erro | 500, JSON inválido | `pocCount` ausente, `PoC-in-GitHub` em `failedSources` | integração (wiremock) |
 | T10 | Cache novo | `kev.json` com 1 h | nenhuma requisição | integração (wiremock com expectativa 0) |
@@ -149,12 +149,14 @@ em disco com TTL por fonte, que as próximas fontes vão reusar.
 ## Dados de teste
 
 - `tests/fixtures/kev/catalog.json`: recorte do catálogo real (versão `2026.11.03`):
-  cabeçalho + 6 entradas, uma delas fora da janela. Capturado em 2026-11-03 de
+  cabeçalho + 7 entradas: cinco na janela de 30 dias contada a partir de
+  2026-11-03, duas fora (uma delas com ransomware `Known`). Capturado em 2026-11-03 de
   `cisagov/kev-data`, o repositório oficial da CISA com o mesmo arquivo do feed
   (pela API do GitHub, já que o ai-jail bloqueia `cisa.gov`). As datas dos testes de
   janela são geradas a partir de "hoje" no próprio teste, para não envelhecerem.
-- `tests/fixtures/poc/CVE-2026-119977.json`: arquivo real do PoC-in-GitHub
-  (3 repositórios), capturado em 2026-11-03.
+- `tests/fixtures/poc/CVE-2026-97229.json`: arquivo real do PoC-in-GitHub
+  (7 repositórios), capturado em 2026-11-03. Das 34 CVEs da janela nessa data, 21
+  tinham arquivo e 13 davam 404 (sem PoC).
 - Hostis (S01–S13) gerados nos testes ou escritos à mão em `tests/fixtures/kev/` e
   `tests/fixtures/poc/`.
 - Termos verificados em 2026-11-03: KEV sob CC0 1.0 (sem uso do logo da CISA ou do
