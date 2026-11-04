@@ -12,6 +12,12 @@
       "type": "array",
       "maxItems": 200,
       "items": { "$ref": "#/$defs/item" }
+    },
+    "failedSources": {
+      "description": "Sources that could not be updated in this run. Optional.",
+      "type": "array",
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/plainText", "maxLength": 64 }
     }
   },
   "$defs": {
@@ -29,7 +35,22 @@
           "maxLength": 2048,
           "pattern": "^https://[^/?#@\\s]+([/?#][^\\s]*)?$"
         },
-        "source": { "$ref": "#/$defs/plainText", "maxLength": 64 }
+        "source": { "$ref": "#/$defs/plainText", "maxLength": 64 },
+        "publishedAt": {
+          "description": "UTC date the source published or added the item. Optional.",
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        },
+        "pocCount": {
+          "description": "Public proof-of-concept repositories found. Optional.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "knownRansomwareUse": {
+          "description": "Known to be used in ransomware campaigns. Optional.",
+          "type": "boolean"
+        }
       }
     },
     "plainText": {

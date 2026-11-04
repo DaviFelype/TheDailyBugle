@@ -4,6 +4,8 @@ use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 use std::process::{Command, Output};
 
+mod common;
+
 fn run(args: &[&OsStr]) -> std::io::Result<Output> {
     Command::new(env!("CARGO_BIN_EXE_thedailybugle"))
         .args(args)
@@ -24,13 +26,30 @@ fn version_flag_prints_the_version_line_and_exits_zero() {
 
 #[test]
 fn feed_json_prints_one_json_line_and_exits_zero() {
-    let output = run(&[OsStr::new("feed"), OsStr::new("--json")]).unwrap();
+    let cache_home = tempfile::tempdir().unwrap();
+    common::write_fresh_cache(cache_home.path()).unwrap();
+    let output = common::feed_command(cache_home.path()).output().unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
 
     assert_eq!(stdout.lines().count(), 1);
     assert!(stdout.ends_with('\n'));
     assert!(serde_json::from_str::<serde_json::Value>(&stdout).is_ok());
     assert!(output.stderr.is_empty());
+    assert_eq!(output.status.code(), Some(0));
+}
+
+#[test]
+fn feed_json_exits_zero_when_every_source_fails() {
+    let cache_home = tempfile::tempdir().unwrap();
+    let output = common::feed_command(cache_home.path()).output().unwrap();
+    let feed: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+
+    assert_eq!(feed["failedSources"], serde_json::json!(["CISA KEV"]));
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("warning: CISA KEV")
+    );
     assert_eq!(output.status.code(), Some(0));
 }
 
