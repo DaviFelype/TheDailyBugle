@@ -1,8 +1,5 @@
 //! CISA's Known Exploited Vulnerabilities catalog (CC0 1.0).
 
-// Stubs until the implementation commit.
-#![allow(dead_code, unused_imports)]
-
 use std::collections::HashSet;
 use std::fmt;
 
@@ -67,18 +64,38 @@ struct RawCatalog {
 
 /// Reads the catalog. A bad entry is skipped and counted; only a catalog that
 /// is not the expected shape at all is an error.
-pub fn parse_catalog(_body: &[u8]) -> Result<Catalog, KevError> {
-    todo!()
+pub fn parse_catalog(body: &[u8]) -> Result<Catalog, KevError> {
+    let raw: RawCatalog = serde_json::from_slice(body).map_err(|_| KevError::Malformed)?;
+    if raw.vulnerabilities.len() > MAX_ENTRIES {
+        return Err(KevError::TooManyEntries);
+    }
+
+    let mut seen = HashSet::new();
+    let mut entries = Vec::new();
+    let mut skipped = 0;
+    for value in &raw.vulnerabilities {
+        match entry_from(value) {
+            // The first occurrence of a CVE wins.
+            Some(entry) if seen.insert(entry.cve.clone()) => entries.push(entry),
+            _ => skipped += 1,
+        }
+    }
+    Ok(Catalog { entries, skipped })
 }
 
 /// Builds an entry from the fields the cache and the feed both use.
 pub fn entry_from_fields(
-    _cve: &str,
-    _name: &str,
-    _date_added: &str,
-    _known_ransomware: bool,
+    cve: &str,
+    name: &str,
+    date_added: &str,
+    known_ransomware: bool,
 ) -> Option<KevEntry> {
-    todo!()
+    Some(KevEntry {
+        cve: CveId::parse(cve)?,
+        name: PlainText::title(name).ok()?,
+        date_added: PublishedDate::parse(date_added)?,
+        known_ransomware,
+    })
 }
 
 fn entry_from(value: &Value) -> Option<KevEntry> {
@@ -93,8 +110,19 @@ fn entry_from(value: &Value) -> Option<KevEntry> {
 
 /// Entries added between `days` days ago and today, newest first, at most
 /// `max`. Dates in the future are dropped.
-pub fn added_within(_entries: &[KevEntry], _today: Date, _days: i64, _max: usize) -> Vec<KevEntry> {
-    todo!()
+pub fn added_within(entries: &[KevEntry], today: Date, days: i64, max: usize) -> Vec<KevEntry> {
+    let mut recent: Vec<KevEntry> = entries
+        .iter()
+        .filter(|entry| {
+            let age = (today - entry.date_added.date()).whole_days();
+            (0..=days).contains(&age)
+        })
+        .cloned()
+        .collect();
+    // Stable: entries added the same day keep the catalog's order.
+    recent.sort_by_key(|entry| std::cmp::Reverse(entry.date_added));
+    recent.truncate(max);
+    recent
 }
 
 #[cfg(test)]

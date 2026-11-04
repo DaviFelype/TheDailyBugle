@@ -8,8 +8,15 @@ pub struct CveId(String);
 
 impl CveId {
     /// `CVE-` + four-digit year + `-` + 4 to 19 digits, nothing else.
-    pub fn parse(_raw: &str) -> Option<Self> {
-        todo!()
+    pub fn parse(raw: &str) -> Option<Self> {
+        let rest = raw.strip_prefix("CVE-")?;
+        let (year, number) = rest.split_once('-')?;
+        let all_digits = |part: &str| part.bytes().all(|byte| byte.is_ascii_digit());
+        let valid = year.len() == 4
+            && all_digits(year)
+            && (4..=19).contains(&number.len())
+            && all_digits(number);
+        valid.then(|| Self(raw.to_owned()))
     }
 
     pub fn as_str(&self) -> &str {

@@ -2,9 +2,6 @@
 //! everything read back is validated again: the files are as untrusted as the
 //! network.
 
-// Stubs until the implementation commit.
-#![allow(dead_code, unused_imports)]
-
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -29,16 +26,16 @@ pub const MAX_STALE_SECONDS: u64 = 7 * 24 * HOUR;
 
 /// How long ago `fetched_at` was. A time in the future (clock moved back, or
 /// a tampered file) has no age, so it is never fresh.
-pub fn age_seconds(_fetched_at: u64, _now: u64) -> Option<u64> {
-    todo!()
+pub fn age_seconds(fetched_at: u64, now: u64) -> Option<u64> {
+    now.checked_sub(fetched_at)
 }
 
-pub fn is_fresh(_fetched_at: u64, _now: u64, _ttl_seconds: u64) -> bool {
-    todo!()
+pub fn is_fresh(fetched_at: u64, now: u64, ttl_seconds: u64) -> bool {
+    age_seconds(fetched_at, now).is_some_and(|age| age < ttl_seconds)
 }
 
-pub fn is_usable_when_stale(_fetched_at: u64, _now: u64) -> bool {
-    todo!()
+pub fn is_usable_when_stale(fetched_at: u64, now: u64) -> bool {
+    age_seconds(fetched_at, now).is_some_and(|age| age <= MAX_STALE_SECONDS)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -84,21 +81,85 @@ struct PocFileEntry {
     fetched_at: u64,
 }
 
-pub fn encode_kev(_fetched_at: u64, _entries: &[KevEntry]) -> Result<Vec<u8>, serde_json::Error> {
-    todo!()
+pub fn encode_kev(fetched_at: u64, entries: &[KevEntry]) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(&KevFile {
+        version: FORMAT_VERSION,
+        fetched_at,
+        entries: entries
+            .iter()
+            .map(|entry| KevFileEntry {
+                cve: entry.cve.to_string(),
+                name: entry.name.as_str().to_owned(),
+                date_added: entry.date_added.to_string(),
+                known_ransomware: entry.known_ransomware,
+            })
+            .collect(),
+    })
 }
 
 /// `None` for anything that is not a version 1 file; bad entries are dropped.
-pub fn decode_kev(_bytes: &[u8]) -> Option<CachedKev> {
-    todo!()
+pub fn decode_kev(bytes: &[u8]) -> Option<CachedKev> {
+    let file: KevFile = serde_json::from_slice(bytes).ok()?;
+    if file.version != FORMAT_VERSION {
+        return None;
+    }
+    let entries = file
+        .entries
+        .iter()
+        .filter_map(|entry| {
+            entry_from_fields(
+                &entry.cve,
+                &entry.name,
+                &entry.date_added,
+                entry.known_ransomware,
+            )
+        })
+        .collect();
+    Some(CachedKev {
+        fetched_at: file.fetched_at,
+        entries,
+    })
 }
 
-pub fn encode_poc(_entries: &BTreeMap<CveId, CachedPoc>) -> Result<Vec<u8>, serde_json::Error> {
-    todo!()
+pub fn encode_poc(entries: &BTreeMap<CveId, CachedPoc>) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(&PocFile {
+        version: FORMAT_VERSION,
+        entries: entries
+            .iter()
+            .take(MAX_POC_ENTRIES)
+            .map(|(cve, poc)| {
+                (
+                    cve.to_string(),
+                    PocFileEntry {
+                        count: poc.count,
+                        fetched_at: poc.fetched_at,
+                    },
+                )
+            })
+            .collect(),
+    })
 }
 
-pub fn decode_poc(_bytes: &[u8]) -> Option<BTreeMap<CveId, CachedPoc>> {
-    todo!()
+pub fn decode_poc(bytes: &[u8]) -> Option<BTreeMap<CveId, CachedPoc>> {
+    let file: PocFile = serde_json::from_slice(bytes).ok()?;
+    if file.version != FORMAT_VERSION || file.entries.len() > MAX_POC_ENTRIES {
+        return None;
+    }
+    Some(
+        file.entries
+            .iter()
+            .filter(|(_, entry)| entry.count <= MAX_POC_COUNT)
+            .filter_map(|(cve, entry)| {
+                Some((
+                    CveId::parse(cve)?,
+                    CachedPoc {
+                        count: entry.count,
+                        fetched_at: entry.fetched_at,
+                    },
+                ))
+            })
+            .collect(),
+    )
 }
 
 #[cfg(test)]

@@ -1,9 +1,6 @@
 //! nomi-sec/PoC-in-GitHub (CC0 1.0): one JSON file per CVE listing the
 //! GitHub repositories that claim a proof of concept.
 
-// Stubs until the implementation commit.
-#![allow(dead_code, unused_imports)]
-
 use std::fmt;
 
 use serde_json::Value;
@@ -31,13 +28,25 @@ impl std::error::Error for MalformedPocList {}
 
 /// `<base><year>/<CVE>.json`. The CVE is already validated, so nothing in it
 /// can add a path segment or a query.
-pub fn poc_url(_base: &Url, _cve: &CveId) -> Result<Url, url::ParseError> {
-    todo!()
+pub fn poc_url(base: &Url, cve: &CveId) -> Result<Url, url::ParseError> {
+    base.join(&format!("{}/{}.json", cve.year(), cve))
 }
 
 /// Counts the listed repositories whose link is a plain GitHub repository.
-pub fn count_pocs(_body: &[u8]) -> Result<u32, MalformedPocList> {
-    todo!()
+pub fn count_pocs(body: &[u8]) -> Result<u32, MalformedPocList> {
+    let list: Vec<Value> = serde_json::from_slice(body).map_err(|_| MalformedPocList)?;
+    let count = list
+        .iter()
+        .filter(|repository| {
+            repository
+                .get("html_url")
+                .and_then(Value::as_str)
+                .is_some_and(is_github_repository)
+        })
+        .count();
+    Ok(u32::try_from(count)
+        .unwrap_or(MAX_POC_COUNT)
+        .min(MAX_POC_COUNT))
 }
 
 /// `https://github.com/<owner>/<repo>` and nothing more.

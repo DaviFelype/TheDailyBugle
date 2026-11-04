@@ -1,8 +1,5 @@
 //! The cache folder: private permissions, no symbolic links, atomic writes.
 
-// Stubs until the implementation commit.
-#![allow(dead_code, unused_imports)]
-
 use std::ffi::OsStr;
 use std::fmt;
 use std::fs::{self, DirBuilder, File, OpenOptions, Permissions};
@@ -44,11 +41,14 @@ impl From<io::Error> for CacheError {
 
 /// `$XDG_CACHE_HOME/thedailybugle`, or `$HOME/.cache/thedailybugle`. Relative
 /// values are ignored, as the XDG spec says.
-pub fn default_cache_path(
-    _xdg_cache_home: Option<&OsStr>,
-    _home: Option<&OsStr>,
-) -> Option<PathBuf> {
-    todo!()
+pub fn default_cache_path(xdg_cache_home: Option<&OsStr>, home: Option<&OsStr>) -> Option<PathBuf> {
+    fn absolute(value: Option<&OsStr>) -> Option<&Path> {
+        value.map(Path::new).filter(|path| path.is_absolute())
+    }
+    absolute(xdg_cache_home)
+        .map(Path::to_path_buf)
+        .or_else(|| absolute(home).map(|home| home.join(".cache")))
+        .map(|base| base.join(FOLDER_NAME))
 }
 
 #[derive(Debug, Clone)]
@@ -59,8 +59,30 @@ pub struct CacheDir {
 impl CacheDir {
     /// Opens the folder, creating it `0700` if needed and tightening it if it
     /// is more open. A symbolic link is refused, wherever it points.
-    pub fn open(_path: &Path) -> Result<Self, CacheError> {
-        todo!()
+    pub fn open(path: &Path) -> Result<Self, CacheError> {
+        match fs::symlink_metadata(path) {
+            Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+                return Err(CacheError::NotAPrivateFolder);
+            }
+            Ok(metadata) => {
+                if metadata.permissions().mode() & NOT_PRIVATE != 0 {
+                    fs::set_permissions(path, Permissions::from_mode(DIR_MODE))?;
+                }
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                if let Some(parent) = path.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                DirBuilder::new().mode(DIR_MODE).create(path)?;
+                // The umask may have removed bits but never adds them; set
+                // the mode anyway so the result does not depend on it.
+                fs::set_permissions(path, Permissions::from_mode(DIR_MODE))?;
+            }
+            Err(error) => return Err(error.into()),
+        }
+        Ok(Self {
+            path: path.to_path_buf(),
+        })
     }
 
     pub fn path(&self) -> &Path {
@@ -69,15 +91,40 @@ impl CacheDir {
 
     /// The file's bytes, or `None` when it is missing, not a regular file (a
     /// symbolic link included), or larger than `max_bytes`.
-    pub fn read(&self, _name: &str, _max_bytes: usize) -> Option<Vec<u8>> {
-        todo!()
+    pub fn read(&self, name: &str, max_bytes: usize) -> Option<Vec<u8>> {
+        let path = self.path.join(name);
+        let metadata = fs::symlink_metadata(&path).ok()?;
+        if !metadata.file_type().is_file() {
+            return None;
+        }
+        if metadata.permissions().mode() & NOT_PRIVATE != 0 {
+            // Best effort: a file we cannot tighten is still readable data.
+            let _ = fs::set_permissions(&path, Permissions::from_mode(FILE_MODE));
+        }
+        let limit = u64::try_from(max_bytes).ok()?;
+        let mut bytes = Vec::new();
+        File::open(&path)
+            .ok()?
+            .take(limit + 1)
+            .read_to_end(&mut bytes)
+            .ok()?;
+        (bytes.len() <= max_bytes).then_some(bytes)
     }
 
     /// Writes a new file next to the old one and renames it over, so readers
     /// see either the old bytes or the new ones. `rename` replaces a symbolic
     /// link itself instead of writing through it.
-    pub fn write_atomic(&self, _name: &str, _bytes: &[u8]) -> Result<(), CacheError> {
-        todo!()
+    pub fn write_atomic(&self, name: &str, bytes: &[u8]) -> Result<(), CacheError> {
+        let target = self.path.join(name);
+        let temporary = self
+            .path
+            .join(format!(".{name}.{}.tmp", std::process::id()));
+        let result =
+            write_new_file(&temporary, bytes).and_then(|()| fs::rename(&temporary, &target));
+        if result.is_err() {
+            let _ = fs::remove_file(&temporary);
+        }
+        Ok(result?)
     }
 }
 

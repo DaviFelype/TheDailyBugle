@@ -1,8 +1,5 @@
 //! Calendar dates in the contract, always written as `YYYY-MM-DD`.
 
-// Stubs until the implementation commit.
-#![allow(dead_code, unused_imports)]
-
 use serde::{Serialize, Serializer};
 use time::{Date, Month};
 
@@ -13,12 +10,21 @@ pub struct PublishedDate(Date);
 impl PublishedDate {
     /// Reads exactly `YYYY-MM-DD`; anything else, or a date that does not
     /// exist (2026-02-30), is `None`.
-    pub fn parse(_raw: &str) -> Option<Self> {
-        todo!()
+    pub fn parse(raw: &str) -> Option<Self> {
+        // ASCII first, so the byte slicing below cannot split a character.
+        let bytes = raw.as_bytes();
+        if !raw.is_ascii() || bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
+            return None;
+        }
+        let year: i32 = digits(&raw[0..4])?;
+        let month: u8 = digits(&raw[5..7])?;
+        let day: u8 = digits(&raw[8..10])?;
+        let month = Month::try_from(month).ok()?;
+        Date::from_calendar_date(year, month, day).ok().map(Self)
     }
 
-    pub fn from_date(_date: Date) -> Option<Self> {
-        todo!()
+    pub fn from_date(date: Date) -> Option<Self> {
+        (1000..=9999).contains(&date.year()).then_some(Self(date))
     }
 
     pub fn date(self) -> Date {

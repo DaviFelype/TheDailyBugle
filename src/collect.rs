@@ -2,9 +2,6 @@
 //! the recent ones, then the sample items. A failing source is reported in
 //! `failedSources`; it never stops the rest.
 
-// Stubs until the implementation commit.
-#![allow(dead_code, unused_imports)]
-
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -42,7 +39,12 @@ pub struct SourceSettings {
 
 impl SourceSettings {
     pub fn production() -> Result<Self, url::ParseError> {
-        todo!()
+        Ok(Self {
+            kev_url: Url::parse(kev::KEV_URL)?,
+            poc_base_url: Url::parse(poc::POC_BASE_URL)?,
+            // The widget gives up after 30 s.
+            budget: Duration::from_secs(20),
+        })
     }
 }
 
@@ -55,22 +57,41 @@ pub struct Clock {
 
 impl Clock {
     pub fn now() -> Self {
-        todo!()
+        let unix_seconds = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_secs());
+        Self::at(unix_seconds)
     }
 
-    pub fn at(_unix_seconds: u64) -> Self {
-        todo!()
+    pub fn at(unix_seconds: u64) -> Self {
+        let today = i64::try_from(unix_seconds)
+            .ok()
+            .and_then(|seconds| OffsetDateTime::from_unix_timestamp(seconds).ok())
+            .unwrap_or(OffsetDateTime::UNIX_EPOCH)
+            .date();
+        Self {
+            unix_seconds,
+            today,
+        }
     }
 }
 
 /// The whole feed: vulnerabilities from KEV, then the sample items.
 pub async fn build_feed(
-    _client: &HttpClient,
-    _cache: Option<&CacheDir>,
-    _settings: &SourceSettings,
-    _clock: Clock,
+    client: &HttpClient,
+    cache: Option<&CacheDir>,
+    settings: &SourceSettings,
+    clock: Clock,
 ) -> Feed {
-    todo!()
+    let vulnerabilities = collect_vulnerabilities(client, cache, settings, clock).await;
+    let mut items = vulnerabilities.items;
+    items.extend(sample::items());
+    let failed = vulnerabilities
+        .failed_sources
+        .iter()
+        .filter_map(|name| PlainText::source(name).ok())
+        .collect();
+    Feed::new(items, failed)
 }
 
 #[derive(Debug)]
@@ -80,12 +101,34 @@ pub struct Collected {
 }
 
 pub async fn collect_vulnerabilities(
-    _client: &HttpClient,
-    _cache: Option<&CacheDir>,
-    _settings: &SourceSettings,
-    _clock: Clock,
+    client: &HttpClient,
+    cache: Option<&CacheDir>,
+    settings: &SourceSettings,
+    clock: Clock,
 ) -> Collected {
-    todo!()
+    let deadline = Instant::now() + settings.budget;
+    let mut failed_sources = Vec::new();
+
+    let (entries, kev_failed) = kev_entries(client, cache, settings, clock, deadline).await;
+    if kev_failed {
+        failed_sources.push(KEV_SOURCE);
+    }
+    let recent = kev::added_within(&entries, clock.today, WINDOW_DAYS, MAX_RECENT);
+
+    let (poc_counts, poc_failed) =
+        poc_counts(client, cache, settings, clock, deadline, &recent).await;
+    if poc_failed {
+        failed_sources.push(POC_SOURCE);
+    }
+
+    let items = recent
+        .iter()
+        .filter_map(|entry| vulnerability_item(entry, poc_counts.get(&entry.cve).copied()))
+        .collect();
+    Collected {
+        items,
+        failed_sources,
+    }
 }
 
 /// The KEV entries to use, and whether updating them failed.
@@ -284,8 +327,19 @@ fn save(cache: &CacheDir, name: &str, encoded: Result<Vec<u8>, serde_json::Error
     }
 }
 
-fn vulnerability_item(_entry: &KevEntry, _poc_count: Option<u32>) -> Option<Item> {
-    todo!()
+fn vulnerability_item(entry: &KevEntry, poc_count: Option<u32>) -> Option<Item> {
+    let cve = entry.cve.as_str();
+    Some(Item {
+        id: ItemId::new(&format!("kev:{cve}")).ok()?,
+        category: Category::Vulnerability,
+        title: PlainText::title(&format!("{cve} {}", entry.name.as_str())).ok()?,
+        // Built from the validated id, never copied from the feed.
+        url: HttpsUrl::parse(&format!("https://nvd.nist.gov/vuln/detail/{cve}")).ok()?,
+        source: PlainText::source(KEV_SOURCE).ok()?,
+        published_at: Some(entry.date_added),
+        poc_count,
+        known_ransomware_use: Some(entry.known_ransomware),
+    })
 }
 
 #[cfg(test)]

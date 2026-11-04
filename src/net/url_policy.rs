@@ -13,8 +13,12 @@ pub enum UrlPolicy {
 }
 
 impl UrlPolicy {
-    pub fn allows(self, _url: &Url) -> bool {
-        todo!()
+    pub fn allows(self, url: &Url) -> bool {
+        match url.scheme() {
+            "https" => url.host_str().is_some_and(|host| !host.is_empty()),
+            "http" => self == Self::HttpsOrLoopbackHttp && url.host_str() == Some("127.0.0.1"),
+            _ => false,
+        }
     }
 }
 
