@@ -35,13 +35,15 @@ the plugin renders all text as plain text. See
 ## Try it locally
 
 ```sh
-cargo install --path . --locked                    # puts thedailybugle in ~/.cargo/bin
+cargo install --path . --locked --root ~/.local      # puts thedailybugle in ~/.local/bin
 omarchy plugin add ~/path/to/TheDailyBugle --enable  # clones the committed HEAD
 ```
 
-The shell runs `thedailybugle` from its own `PATH`. If the bar shows an alert
-glyph and the popup says the binary was not found, make sure `~/.cargo/bin` is on
-the `PATH` of your graphical session.
+The shell runs `thedailybugle` from the `PATH` of the graphical session, which
+Omarchy builds from the system paths, mise shims and `~/.local/bin`, but not
+`~/.cargo/bin`. That is why the install goes to `~/.local`. If the popup says
+"Could not load the feed", check `ls ~/.local/bin/thedailybugle`, then middle
+click the icon to refresh.
 
 In the bar: left click opens the popup, middle click refreshes. Clicking an item
 opens it in the browser through `xdg-open`, only for `https://` links.
