@@ -7,8 +7,31 @@ cybersecurity feed:
 - major ransomware attacks, worldwide and in Brazil;
 - relevant security news of the day.
 
-> **Status:** early development. The feed shows built-in sample items only;
-> real sources come next. See [docs/ROADMAP.md](docs/ROADMAP.md) (in Portuguese).
+> **Status:** early development. Vulnerabilities come from real sources;
+> ransomware and news are still built-in sample items. See
+> [docs/ROADMAP.md](docs/ROADMAP.md) (in Portuguese).
+
+## Sources
+
+| Source | What it gives | License |
+|---|---|---|
+| [CISA Known Exploited Vulnerabilities](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | CVEs added in the last 30 days, and whether they are used by ransomware | CC0 1.0 |
+| [nomi-sec/PoC-in-GitHub](https://github.com/nomi-sec/PoC-in-GitHub) | how many public GitHub repositories claim a proof of concept for each CVE | CC0 1.0 |
+
+TheDailyBugle is not affiliated with or endorsed by CISA or DHS. Each
+vulnerability links to its NVD page. The widget shows only the number of PoC
+repositories, never links to them: fake PoC repositories that spread malware
+are a known trick.
+
+When a source cannot be reached, the feed keeps what worked, lists the source in
+`failedSources` and the popup says `Could not update: <source>`.
+
+## Cache
+
+Fetched data is kept in `$XDG_CACHE_HOME/thedailybugle/` (by default
+`~/.cache/thedailybugle/`), with `0700` on the folder and `0600` on the files,
+for 6 hours. If a source fails, cached data up to 7 days old is shown instead.
+Deleting the folder is always safe.
 
 ## Architecture
 
@@ -64,6 +87,9 @@ opens it in the browser through `xdg-open`, only for `https://` links.
   text, without control or bidi characters.
 - `url` is `https://`, without a user name or password, up to 2048 bytes.
 - At most 200 items.
+- Optional, per item: `publishedAt` (`YYYY-MM-DD`, UTC), `pocCount` (0 to
+  10000) and `knownRansomwareUse` (boolean).
+- Optional, at the top: `failedSources`, up to 10 source names.
 
 The plugin refuses any other `schemaVersion` and ignores fields it does not know.
 
