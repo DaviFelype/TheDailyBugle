@@ -26,6 +26,27 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "kev_catalog"
+path = "fuzz_targets/kev_catalog.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "poc_list"
+path = "fuzz_targets/poc_list.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "kev_cache"
+path = "fuzz_targets/kev_cache.rs"
+test = false
+doc = false
+bench = false
+
 # Its own workspace: the fuzz harness and its nightly build stay out of the
 # main crate's dependency graph.
 [workspace]
