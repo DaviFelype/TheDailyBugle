@@ -2,7 +2,7 @@
 
 - **Status:** aprovada em 2026-11-03
 - **Fase do roadmap:** 3.1a (D9, D10)
-- **PR:** <link quando existir>
+- **PR:** https://github.com/DaviFelype/TheDailyBugle/pull/16
 
 ## Objetivo
 
