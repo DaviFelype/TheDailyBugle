@@ -196,13 +196,15 @@ Resultado dos casos S01–S12 em `docs/test-strategy/000-pipeline-ci.md` (PRs #2
 Concluída em 2026-11-03 (PR #13).
 
 ### Fase 3 — Fontes de dados (uma estratégia de teste por fonte)
-- [ ] 3.1 CVEs com PoC (KEV + NVD + EPSS + PoC-in-GitHub).
+- [ ] 3.1a CVEs exploradas com PoC (KEV + PoC-in-GitHub) e cache em disco com TTL
+  por fonte (ver D10). Estratégia 002.
+- [ ] 3.1b Enriquecimento com CVSS (NVD) e EPSS (ver D9). Estratégia 003.
 - [ ] 3.2 Ransomware global.
 - [ ] 3.3 Ransomware no Brasil.
 - [ ] 3.4 Notícias (RSS configurável).
 
 ### Fase 4 — Agregação
-- [ ] Cache em disco com TTL por fonte (respeitar limites das APIs).
+- [ ] ~~Cache em disco com TTL por fonte~~ — antecipado para a 3.1a (D10).
 - [ ] Deduplicação, ordenação por relevância (KEV, EPSS, CVSS, recência, Brasil).
 - [ ] Marcação de "novo desde a última leitura".
 - [ ] Configuração TOML com validação.
@@ -220,7 +222,7 @@ Concluída em 2026-11-03 (PR #13).
 
 ---
 
-## 7. Decisões (aprovadas em 2026-11-01)
+## 7. Decisões (D1–D8 aprovadas em 2026-11-01)
 
 | # | Decisão | Resultado |
 |---|---|---|
@@ -232,3 +234,5 @@ Concluída em 2026-11-03 (PR #13).
 | D6 | Idioma | Código, commits e CLAUDE.md em inglês; documentação de processo em pt-BR |
 | D7 | ID do plugin / binário / pasta de config | `davifelype.thedailybugle` / `thedailybugle` / `~/.config/thedailybugle/` |
 | D8 | Autor dos commits | Davi Felype <davifelypecostasilva@gmail.com> (e-mail pessoal, público no histórico) |
+| D9 | Divisão da Fase 3.1 (2026-11-03) | 3.1a = KEV + PoC-in-GitHub; 3.1b = NVD + EPSS. Do ai-jail só KEV e PoC-in-GitHub são alcançáveis (pela API do GitHub) para capturar fixtures reais. |
+| D10 | Cache em disco (2026-11-03) | Antecipado da Fase 4 para a 3.1a: sem ele o widget baixaria ~170 MB/dia do KEV (1,8 MB a cada 15 min). |

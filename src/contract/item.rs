@@ -7,6 +7,7 @@ use serde::Serialize;
 use super::https_url::{HttpsUrl, UrlError};
 use super::item_id::{InvalidId, ItemId};
 use super::plain_text::{EmptyText, PlainText};
+use super::published_date::PublishedDate;
 
 /// What kind of news an item is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -28,12 +29,20 @@ pub struct RawItem<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Item {
     pub id: ItemId,
     pub category: Category,
     pub title: PlainText,
     pub url: HttpsUrl,
     pub source: PlainText,
+    /// The optional fields are left out of the JSON when unknown.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub published_at: Option<PublishedDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poc_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub known_ransomware_use: Option<bool>,
 }
 
 /// Which field made an item invalid.
@@ -66,6 +75,9 @@ impl Item {
             title: PlainText::title(raw.title).map_err(ItemError::Title)?,
             url: HttpsUrl::parse(raw.url).map_err(ItemError::Url)?,
             source: PlainText::source(raw.source).map_err(ItemError::Source)?,
+            published_at: None,
+            poc_count: None,
+            known_ransomware_use: None,
         })
     }
 }

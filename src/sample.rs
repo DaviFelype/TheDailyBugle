@@ -1,18 +1,11 @@
-//! Built-in sample items. They let the plugin be tried end to end before the
-//! real sources exist (roadmap phase 3), which replace them.
+//! Built-in sample items for the categories that have no real source yet
+//! (roadmap phases 3.2 to 3.4), which replace them.
 
-use crate::contract::{Category, Feed, Item, RawItem};
+use crate::contract::{Category, Item, RawItem};
 
 const SAMPLE_SOURCE: &str = "TheDailyBugle sample";
 
-const SAMPLE_ITEMS: [RawItem<'static>; 3] = [
-    RawItem {
-        id: "sample:vulnerability",
-        category: Category::Vulnerability,
-        title: "[Sample] Exploited vulnerability with a public PoC",
-        url: "https://example.com/thedailybugle/sample/vulnerability",
-        source: SAMPLE_SOURCE,
-    },
+const SAMPLE_ITEMS: [RawItem<'static>; 2] = [
     RawItem {
         id: "sample:ransomware",
         category: Category::Ransomware,
@@ -29,15 +22,13 @@ const SAMPLE_ITEMS: [RawItem<'static>; 3] = [
     },
 ];
 
-/// The sample feed. Items go through the same checks as real ones; an
+/// The sample items. They go through the same checks as real ones; an
 /// invalid one is left out.
-pub fn feed() -> Feed {
-    Feed::new(
-        SAMPLE_ITEMS
-            .iter()
-            .filter_map(|raw| Item::from_raw(raw).ok())
-            .collect(),
-    )
+pub fn items() -> Vec<Item> {
+    SAMPLE_ITEMS
+        .iter()
+        .filter_map(|raw| Item::from_raw(raw).ok())
+        .collect()
 }
 
 #[cfg(test)]
@@ -45,22 +36,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sample_feed_has_one_item_of_each_category() {
-        let categories: Vec<Category> = feed().items().iter().map(|item| item.category).collect();
+    fn samples_cover_the_categories_without_a_real_source() {
+        let categories: Vec<Category> = items().iter().map(|item| item.category).collect();
 
-        assert_eq!(
-            categories,
-            [
-                Category::Vulnerability,
-                Category::Ransomware,
-                Category::News
-            ]
-        );
+        assert_eq!(categories, [Category::Ransomware, Category::News]);
     }
 
     #[test]
     fn sample_items_are_marked_as_samples() {
-        for item in feed().items() {
+        for item in items() {
             assert!(item.title.as_str().starts_with("[Sample] "));
             assert_eq!(item.source.as_str(), SAMPLE_SOURCE);
         }

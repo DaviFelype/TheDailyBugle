@@ -150,10 +150,10 @@ compilando sem rede (`cargo fetch` antes).
 ## Critério de pronto
 
 - [x] T01–T22 e S01–S14 automatizados e passando.
-- [ ] M01–M03 conferidos por você na sua máquina. *(M01 e M02 em 2026-11-03: o
-  primeiro teste caiu no estado de erro porque o binário estava fora do PATH da
-  sessão, e o bar continuou de pé; depois da instalação em `~/.local/bin`, o
-  popup mostrou os itens. M03, clique abrindo o link, ainda não confirmado.)*
+- [x] M01–M03 conferidos por você na sua máquina (2026-11-03). *O primeiro teste
+  caiu no estado de erro porque o binário estava fora do PATH da sessão, e o bar
+  continuou de pé (M02); depois da instalação em `~/.local/bin`, o popup mostrou
+  os itens (M01) e o clique abriu o link no navegador (M03).*
 - [x] Cobertura de linhas ≥ 90% (99,1%).
 - [x] CI verde (incluindo os dois alvos novos de fuzzing).
 - [x] README com instalação local e o contrato JSON.

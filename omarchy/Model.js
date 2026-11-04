@@ -16,6 +16,11 @@ var MAX_TITLE_CHARS = 300
 var MAX_SOURCE_CHARS = 64
 var MAX_URL_LENGTH = 2048
 var CATEGORIES = ["vulnerability", "ransomware", "news"]
+var MAX_POC_COUNT = 10000
+var MAX_FAILED_SOURCES = 10
+var PUBLISHED_AT_PATTERN = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/
+var DETAIL_SEPARATOR = " · "
+var FAILURE_PREFIX = "Could not update: "
 
 // Nerd Font glyphs (Material Design Icons): newspaper and alert.
 var FEED_GLYPH = "\u{F0395}"
@@ -33,32 +38,32 @@ function barLabel(count) {
 
 // Before the first run finishes.
 function initialState() {
-  return { status: "loading", items: [] }
+  return { status: "loading", items: [], failedSources: [] }
 }
 
 // Reads one run of `thedailybugle feed --json`. `exitCode` is null when the
 // binary never started. Status is "ok", "error" or "incompatible".
 function parseFeed(stdout, exitCode) {
-  if (exitCode !== 0 || typeof stdout !== "string") return { status: "error", items: [] }
+  if (exitCode !== 0 || typeof stdout !== "string") return { status: "error", items: [], failedSources: [] }
 
   var document
   try {
     document = JSON.parse(stdout)
   } catch (error) {
-    return { status: "error", items: [] }
+    return { status: "error", items: [], failedSources: [] }
   }
-  if (!isPlainObject(document)) return { status: "error", items: [] }
+  if (!isPlainObject(document)) return { status: "error", items: [], failedSources: [] }
   if (typeof document.schemaVersion === "number" && document.schemaVersion !== SCHEMA_VERSION)
-    return { status: "incompatible", items: [] }
+    return { status: "incompatible", items: [], failedSources: [] }
   if (document.schemaVersion !== SCHEMA_VERSION || !Array.isArray(document.items))
-    return { status: "error", items: [] }
+    return { status: "error", items: [], failedSources: [] }
 
   var items = []
   for (var index = 0; index < document.items.length && items.length < MAX_ITEMS; index++) {
     var item = cleanItem(document.items[index])
     if (item) items.push(item)
   }
-  return { status: "ok", items: items }
+  return { status: "ok", items: items, failedSources: cleanFailedSources(document.failedSources) }
 }
 
 // The state after a run. A failed run keeps the last good items on screen.
@@ -66,7 +71,7 @@ function nextState(previous, stdout, exitCode) {
   var parsed = parseFeed(stdout, exitCode)
   if (parsed.status === "ok") return parsed
   var keptItems = previous && Array.isArray(previous.items) ? previous.items : []
-  return { status: parsed.status, items: keptItems }
+  return { status: parsed.status, items: keptItems, failedSources: [] }
 }
 
 function barText(state) {
@@ -80,6 +85,25 @@ function errorMessage(status) {
   if (status === "error") return ERROR_MESSAGE
   if (status === "incompatible") return INCOMPATIBLE_MESSAGE
   return ""
+}
+
+// The line under the title: "CISA KEV · 2026-11-03 · 3 PoC · ransomware",
+// each part only when the item has it.
+function itemDetail(item) {
+  if (!isPlainObject(item)) return ""
+  var parts = []
+  if (typeof item.source === "string" && item.source !== "") parts.push(item.source)
+  if (typeof item.publishedAt === "string") parts.push(item.publishedAt)
+  if (typeof item.pocCount === "number") parts.push(item.pocCount + " PoC")
+  if (item.knownRansomwareUse === true) parts.push("ransomware")
+  return parts.join(DETAIL_SEPARATOR)
+}
+
+// Shown above the items when some source could not be updated. The bar icon
+// stays as it is: the other items are still good.
+function failureNotice(state) {
+  if (!state || !Array.isArray(state.failedSources) || state.failedSources.length === 0) return ""
+  return FAILURE_PREFIX + state.failedSources.join(", ")
 }
 
 // Only these links reach xdg-open.
@@ -98,13 +122,31 @@ function cleanItem(raw) {
   if (typeof raw.title !== "string" || raw.title === "") return null
   if (CATEGORIES.indexOf(raw.category) === -1) return null
   if (!isOpenableUrl(raw.url)) return null
-  return {
+  var item = {
     id: raw.id,
     category: raw.category,
     title: truncate(raw.title, MAX_TITLE_CHARS),
     url: raw.url,
     source: typeof raw.source === "string" ? truncate(raw.source, MAX_SOURCE_CHARS) : ""
   }
+  // Optional fields: kept only when valid, left out otherwise.
+  if (typeof raw.publishedAt === "string" && PUBLISHED_AT_PATTERN.test(raw.publishedAt))
+    item.publishedAt = raw.publishedAt
+  if (Number.isInteger(raw.pocCount) && raw.pocCount >= 0 && raw.pocCount <= MAX_POC_COUNT)
+    item.pocCount = raw.pocCount
+  if (typeof raw.knownRansomwareUse === "boolean") item.knownRansomwareUse = raw.knownRansomwareUse
+  return item
+}
+
+// At most 10 non-empty names, each cut like a source.
+function cleanFailedSources(raw) {
+  if (!Array.isArray(raw)) return []
+  var names = []
+  for (var index = 0; index < raw.length && names.length < MAX_FAILED_SOURCES; index++) {
+    if (typeof raw[index] === "string" && raw[index] !== "")
+      names.push(truncate(raw[index], MAX_SOURCE_CHARS))
+  }
+  return names
 }
 
 // Counts code points, like the binary, so an emoji is never split in half.

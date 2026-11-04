@@ -29,6 +29,9 @@ unused-allowed-license = "allow"
 exceptions = [
   # Bundles LLVM's libFuzzer (NCSA, permissive). Used only in fuzz/, never shipped.
   { crate = "libfuzzer-sys", allow = ["NCSA"] },
+  # Mozilla's root certificates as data (permissive). Pulled in by reqwest's
+  # certificate verifier.
+  { crate = "webpki-root-certs", allow = ["CDLA-Permissive-2.0"] },
 ]
 
 [bans]

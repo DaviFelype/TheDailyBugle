@@ -6,7 +6,8 @@ import qs.Commons as Commons
 import qs.Ui
 import "Model.js" as Model
 
-// The popup: the error message, if any, and the list of items. Every text
+// The popup: the error message or the failed-source notice, if any, and the
+// list of items. Every text
 // from the feed is shown with Text.PlainText. Font sizes call Style.fontToken
 // directly because qmllint cannot see the members of Style.font.
 Panel {
@@ -67,6 +68,17 @@ Panel {
             font.pixelSize: Style.fontToken("body", Style.fontPx(1.0))
           }
 
+          Text {
+            width: parent.width
+            visible: text !== ""
+            text: Model.failureNotice(root.feedState)
+            textFormat: Text.PlainText
+            wrapMode: Text.Wrap
+            color: Commons.Color.muted
+            font.family: Style.fontFamily
+            font.pixelSize: Style.fontToken("body-small", Style.fontPx(0.917))
+          }
+
           Repeater {
             model: root.feedState.items
 
@@ -97,7 +109,7 @@ Panel {
 
                 Text {
                   width: parent.width
-                  text: itemArea.modelData.source
+                  text: Model.itemDetail(itemArea.modelData)
                   textFormat: Text.PlainText
                   elide: Text.ElideRight
                   color: Commons.Color.muted
