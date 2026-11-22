@@ -26,4 +26,4 @@ url = "=2.5.8"
 [dev-dependencies]
 insta = { version = "=1.49.0", default-features = false }
 # No remote or file references: the schema is self-contained.
-jsonschema = { version = "=0.60.2", default-features = false }
+jsonschema = { version = "=0.61.2", default-features = false }
